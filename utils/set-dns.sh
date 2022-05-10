@@ -32,7 +32,7 @@ if [ -f "/etc/netplan/50-cloud-init.yaml" ]; then
 
     tmp=$(mktemp)
     # Github Action default Nic: eht0
-    # CircleCi (aws machine) default Nic: ens5
+    # CircleCi default Nic: ens5
     yq -y '.network.ethernets.eth0."dhcp4-overrides"."use-dns"=false' /etc/netplan/50-cloud-init.yaml | \
     yq -y '.network.ethernets.eth0."dhcp4-overrides"."use-domains"=false' | \
     yq -y '.network.ethernets.eth0.nameservers.addresses[0]="8.8.8.8"' | \

@@ -15,7 +15,13 @@
 # limitations under the License.
 #
 
-use t::APISIX 'no_plan';
+use t::APISIX;
+
+if (defined $ENV{TEST_ARM64}) {
+    plan(skip_all => "arm64 not support");
+} else {
+    plan('no_plan');
+}
 
 add_block_preprocessor(sub {
     my ($block) = @_;

@@ -16,7 +16,7 @@ jobs:
     machine:
       image: ubuntu-2004:202101-01
     resource_class: arm.medium
-        
+
     steps:
       - checkout
 
@@ -64,7 +64,7 @@ jobs:
           environment:
             - TEST_FILE_SUB_DIR: << parameters.test_dir >>
           command: |
-            sudo -E ARCH=arm64 ./ci/linux_openresty_common_runner.sh script
+            sudo -E TEST_ARM64=true ARCH=arm64 ./ci/linux_openresty_common_runner.sh script
 
 workflows:
   test-apisx:
@@ -75,6 +75,7 @@ workflows:
                 test_dir:
                   - "t/admin t/cli t/config-center-yaml t/control t/core t/debug t/error_page t/misc"
                   - "t/node t/router t/script t/stream-node t/utils t/xds-library t/xrpc"
+                  - "t/plugin"
           filters:
             branches:
               only: feat/arm64ci_test

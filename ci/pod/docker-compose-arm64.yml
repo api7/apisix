@@ -38,7 +38,7 @@ services:
       KEYCLOAK_IMPORT: "/tmp/University-realm.json -Dkeycloak.profile.feature.upload_scripts=enabled"
     restart: unless-stopped
     volumes:
-      -./ci/pod/keycloak/University-realm.json:/tmp/University-realm.json
+      - ./ci/pod/keycloak/University-realm.json:/tmp/University-realm.json
     ports:
       - "8090:8080"
       - "8443:8443"

@@ -14,13 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-use t::APISIX;
-
-if (defined $ENV{TEST_ARM64}) {
-    plan(skip_all => "arm64 not support");
-} else {
-    plan('no_plan');
-}
+use t::APISIX 'no_plan';
 
 log_level('debug');
 repeat_each(1);

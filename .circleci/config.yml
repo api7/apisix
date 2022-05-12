@@ -53,7 +53,9 @@ jobs:
             mvn package
             cd dubbo-backend-provider/target
             java -Djava.net.preferIPv4Stack=true -jar dubbo-demo-provider.one-jar.jar > /tmp/java.log &
-            sleep 3
+            echo "wait 10s..."
+            sleep 10
+            cat /tmp/java.log
 
       - run:
           name: Linux Install

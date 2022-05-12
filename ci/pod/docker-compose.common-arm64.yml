@@ -84,12 +84,14 @@ services:
 
   ## Redis cluster
   redis-cluster:
-    image: mnaujokas/docker-redis-cluster:latest
+    image: tommy351/redis-cluster:4.0
+    environment:
+      CLUSTER_ANNOUNCE_IP: 127.0.0.1
     restart: unless-stopped
     ports:
-      - "5000:6379"
-      - "5002:6380"
-      - "5003:6381"
-      - "5004:6382"
-      - "5005:6383"
-      - "5006:6384"
+      - "7000:7000"
+      - "7001:7001"
+      - "7002:7002"
+      - "7003:7003"
+      - "7004:7004"
+      - "7005:7005"

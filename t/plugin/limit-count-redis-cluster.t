@@ -15,12 +15,14 @@
 # limitations under the License.
 #
 
-use t::APISIX;
+use t::APISIX 'no_plan';
+
+$ENV{TEST_NGINX_REDIS_CLUSTER_PORT1} = "5000";
+$ENV{TEST_NGINX_REDIS_CLUSTER_PORT2} = "5001";
 
 if (defined $ENV{TEST_ARM64}) {
-    plan(skip_all => "arm64 not support");
-} else {
-    plan('no_plan');
+    $ENV{TEST_NGINX_REDIS_CLUSTER_PORT1} = "7000";
+    $ENV{TEST_NGINX_REDIS_CLUSTER_PORT2} = "7001";
 }
 
 repeat_each(1);
@@ -101,8 +103,8 @@ __DATA__
                             "policy": "redis-cluster",
                             "redis_timeout": 1001,
                             "redis_cluster_nodes": [
-                                "127.0.0.1:5000",
-                                "127.0.0.1:5001"
+                                "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT1",
+                                "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT2"
                             ],
                             "redis_cluster_name": "redis-cluster-1"
                         }
@@ -144,8 +146,8 @@ passed
                             "key": "remote_addr",
                             "policy": "redis-cluster",
                             "redis_cluster_nodes": [
-                                "127.0.0.1:5000",
-                                "127.0.0.1:5001"
+                                "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT1",
+                                "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT2"
                             ],
                             "redis_cluster_name": "redis-cluster-1"
                         }
@@ -211,7 +213,7 @@ unlock with key route#1#redis-cluster
                             "key": "remote_addr",
                             "policy": "redis-cluster",
                             "redis_cluster_nodes": [
-                                "127.0.0.1:5000",
+                                "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT1",
                                 "127.0.0.1:8001",
                                 "127.0.0.1:8002",
                                 "127.0.0.1:8003"
@@ -293,8 +295,8 @@ code: 200
                                 "key": "remote_addr",
                                 "policy": "redis-cluster",
                                 "redis_cluster_nodes": [
-                                    "127.0.0.1:5000",
-                                    "127.0.0.1:5001"
+                                    "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT1",
+                                    "127.0.0.1:$TEST_NGINX_REDIS_CLUSTER_PORT2"
                                 ],
                                 "redis_cluster_name": "redis-cluster-1"
                             }

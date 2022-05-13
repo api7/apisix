@@ -58,8 +58,9 @@ do_install() {
 
     # grpc-web server && client
     cd t/plugin/grpc-web
-    ./setup.sh
-    # back to home directory
+    npm install
+
+    CGO_ENABLED=0 go build -o grpc-web-server server.go
     cd ../../../
 
     # install vault cli capabilities
@@ -86,6 +87,9 @@ script() {
         nc -zv 127.0.0.1 50051 && break
         sleep 1
     done
+
+    ./t/plugin/grpc-web/grpc-web-server > grpc-web-server.log 2>&1 \
+        || (cat grpc-web-server.log && exit 1)&
 
     # APISIX_ENABLE_LUACOV=1 PERL5LIB=.:$PERL5LIB prove -Itest-nginx/lib -r t
     FLUSH_ETCD=1 prove -Itest-nginx/lib -I./ -r $TEST_FILE_SUB_DIR | tee /tmp/test.result

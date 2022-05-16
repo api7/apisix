@@ -16,16 +16,13 @@
 # limitations under the License.
 #
 
-KAFKA_CMD="/opt/bitnami/kafka/bin/kafka-topics.sh"
 ARCH=${ARCH:-`(uname -m | tr '[:upper:]' '[:lower:]')`}
 
-if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
-    KAFKA_CMD="/opt/kafka/bin/kafka-topics.sh"
+if [[ $ARCH == "x86_64" ]] || [[ $ARCH == "amd64" ]]; then
+    docker exec -i apache-apisix_kafka-server1_1 /opt/bitnami/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper-server1:2181 --replication-factor 1 --partitions 1 --topic test2
+    docker exec -i apache-apisix_kafka-server1_1 /opt/bitnami/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper-server1:2181 --replication-factor 1 --partitions 3 --topic test3
+    docker exec -i apache-apisix_kafka-server2_1 /opt/bitnami/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper-server2:2181 --replication-factor 1 --partitions 1 --topic test4
 fi
-
-docker exec -i apache-apisix_kafka-server1_1 $KAFKA_CMD --create --zookeeper zookeeper-server1:2181 --replication-factor 1 --partitions 1 --topic test2
-docker exec -i apache-apisix_kafka-server1_1 $KAFKA_CMD --create --zookeeper zookeeper-server1:2181 --replication-factor 1 --partitions 3 --topic test3
-docker exec -i apache-apisix_kafka-server2_1 $KAFKA_CMD --create --zookeeper zookeeper-server2:2181 --replication-factor 1 --partitions 1 --topic test4
 
 # prepare openwhisk env
 docker pull openwhisk/action-nodejs-v14:nightly

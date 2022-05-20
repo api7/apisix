@@ -45,16 +45,24 @@ jobs:
           name: Linux launch common services
           command: |
             make ci-env-up project_compose_ci=./circleci/pod/docker-compose.common.yml
+
       - run:
           name: Linux Get dependencies
           command: |
             sudo apt-get update
             sudo apt install -y cpanminus build-essential libncurses5-dev libreadline-dev libssl-dev perl libpcre3 libpcre3-dev libldap2-dev
+
       - run:
           name: Build xDS library
           command: |
             cd t/xds-library
             go build -o libxds.so -buildmode=c-shared main.go
+
+      - run:
+          name: Linux Before install
+          command: |
+            sudo -E ./circleci/linux_openresty_common_runner.sh before_install
+
       - run:
           name: Start Dubbo Backend
           command: |
@@ -66,16 +74,19 @@ jobs:
             echo "wait 10s..."
             sleep 10
             cat nohup.out
+
       - run:
           name: Linux Install
           command: |
             sudo -E env PATH=$PATH OPENRESTY_VERSION=source ARCH=arm64 ./circleci/linux_openresty_common_runner.sh do_install
+
       - run:
           name: Linux Script
           environment:
             - TEST_FILE_SUB_DIR: << parameters.test_dir >>
           command: |
             sudo -E TEST_ARM64=true ARCH=arm64 ./circleci/linux_openresty_common_runner.sh script
+
 workflows:
   test-apisx:
     jobs:

@@ -20,12 +20,14 @@ set -ex
 GRPCCURL_ARCH="x86_64"
 VAULT_ARCH="amd64"
 NODEJS_ARCH="x64"
+COREDNS_ARCH="amd64"
 ARCH=${ARCH:-`(uname -m | tr '[:upper:]' '[:lower:]')`}
 
 if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
     GRPCCURL_ARCH="arm64"
     VAULT_ARCH="arm64"
     NODEJS_ARCH="arm64"
+    COREDNS_ARCH="arm64"
 fi
 
 export_or_prefix() {
@@ -120,13 +122,6 @@ set_coredns() {
     cat /etc/resolv.conf
 
     mkdir -p build-cache
-
-    COREDNS_ARCH="amd64"
-    ARCH=${ARCH:-`(uname -m | tr '[:upper:]' '[:lower:]')`}
-
-    if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
-        COREDNS_ARCH="arm64"
-    fi
 
     if [ ! -f "build-cache/coredns_1_8_1" ]; then
         wget https://github.com/coredns/coredns/releases/download/v1.8.1/coredns_1.8.1_linux_${COREDNS_ARCH}.tgz

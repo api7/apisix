@@ -20,10 +20,6 @@
 
 before_install() {
     sudo cpanm --notest Test::Nginx >build.log 2>&1 || (cat build.log && exit 1)
-
-    # launch deps env
-    make ci-env-up
-    ./circleci/linux-ci-init-service.sh
 }
 
 do_install() {

@@ -58,7 +58,7 @@ install_grpcurl () {
     # For more versions, visit https://github.com/fullstorydev/grpcurl/releases
     GRPCURL_VERSION="1.8.5"
     wget https://github.com/fullstorydev/grpcurl/releases/download/v${GRPCURL_VERSION}/grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz
-    tar -xvf grpcurl_${GRPCURL_VERSION}__linux_x86_64.tar.gz -C /usr/local/bin
+    tar -xvf grpcurl_${GRPCURL_VERSION}_linux_x86_64.tar.gz -C /usr/local/bin
 }
 
 install_vault_cli () {

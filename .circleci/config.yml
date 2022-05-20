@@ -43,7 +43,7 @@ jobs:
       - run:
           name: Linux Before install
           command: |
-            sudo -E project_compose_ci=./circleci/pod/docker-compose.yml ARCH=arm64 ./ci/linux_openresty_common_runner.sh before_install
+            sudo -E project_compose_ci=./circleci/pod/docker-compose.yml ARCH=arm64 ./circleci/linux_openresty_common_runner.sh before_install
 
       - run:
           name: Start Dubbo Backend

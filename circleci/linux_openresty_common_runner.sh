@@ -28,11 +28,11 @@ before_install() {
 do_install() {
     export_or_prefix
 
-    ./circle/linux-install-openresty.sh
+    ./circleci/linux-install-openresty.sh
 
     ./utils/linux-install-luarocks.sh
 
-    ./circle/linux-install-etcd-client.sh
+    ./circleci/linux-install-etcd-client.sh
 
     create_lua_deps
 

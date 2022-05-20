@@ -26,7 +26,7 @@ jobs:
       - run:
           name: Linux launch common services
           command: |
-            make ci-env-up project_compose_ci=ci/pod/docker-compose.common-arm64.yml
+            make ci-env-up project_compose_ci=./circleci/pod/docker-compose.common.yml
 
       - run:
           name: Linux Get dependencies
@@ -43,7 +43,7 @@ jobs:
       - run:
           name: Linux Before install
           command: |
-            sudo -E project_compose_ci=./ci/pod/docker-compose-arm64.yml ARCH=arm64 ./ci/linux_openresty_common_runner.sh before_install
+            sudo -E project_compose_ci=./circleci/pod/docker-compose.yml ARCH=arm64 ./ci/linux_openresty_common_runner.sh before_install
 
       - run:
           name: Start Dubbo Backend
@@ -60,14 +60,14 @@ jobs:
       - run:
           name: Linux Install
           command: |
-            sudo -E env PATH=$PATH OPENRESTY_VERSION=source ARCH=arm64 ./ci/linux_openresty_common_runner.sh do_install
+            sudo -E env PATH=$PATH OPENRESTY_VERSION=source ARCH=arm64 ./circleci/linux_openresty_common_runner.sh do_install
 
       - run:
           name: Linux Script
           environment:
             - TEST_FILE_SUB_DIR: << parameters.test_dir >>
           command: |
-            sudo -E TEST_ARM64=true ARCH=arm64 ./ci/linux_openresty_common_runner.sh script
+            sudo -E TEST_ARM64=true ARCH=arm64 ./circleci/linux_openresty_common_runner.sh script
 
 workflows:
   test-apisx:

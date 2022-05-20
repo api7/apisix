@@ -23,7 +23,7 @@ services:
     image: rancher/coreos-etcd:v3.4.16-arm64
     restart: unless-stopped
     env_file:
-      - ci/pod/etcd/env/common.env
+      - circleci/pod/etcd/env/common.env
     environment:
       ETCD_UNSUPPORTED_ARCH: arm64
       ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
@@ -36,7 +36,7 @@ services:
     image: rancher/coreos-etcd:v3.4.16-arm64
     restart: unless-stopped
     env_file:
-      - ci/pod/etcd/env/common.env
+      - circleci/pod/etcd/env/common.env
     environment:
       ETCD_UNSUPPORTED_ARCH: arm64
       ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
@@ -49,7 +49,7 @@ services:
     image: rancher/coreos-etcd:v3.4.16-arm64
     restart: unless-stopped
     env_file:
-      - ci/pod/etcd/env/common.env
+      - circleci/pod/etcd/env/common.env
     environment:
       ETCD_UNSUPPORTED_ARCH: arm64
       ETCD_ADVERTISE_CLIENT_URLS: https://0.0.0.0:12379
@@ -66,7 +66,7 @@ services:
     image: rancher/coreos-etcd:v3.4.16-arm64
     restart: unless-stopped
     env_file:
-      - ci/pod/etcd/env/common.env
+      - circleci/pod/etcd/env/common.env
     environment:
       ETCD_UNSUPPORTED_ARCH: arm64
       ETCD_ADVERTISE_CLIENT_URLS: https://0.0.0.0:22379

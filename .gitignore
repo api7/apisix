@@ -62,7 +62,6 @@ t/lib/dubbo-backend/dubbo-backend-provider/target/
 *.iml
 \.*
 !.github/
-!.circleci/
 !.gitmodules
 !.markdownlint.yml
 !.licenserc.yaml

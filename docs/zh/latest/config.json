@@ -31,7 +31,7 @@
     },
     {
       "type": "doc",
-      "id": "how-to-build"
+      "id": "installation-guide"
     },
     {
       "type": "category",
@@ -129,7 +129,8 @@
               "label": "Metrics",
               "items": [
                 "plugins/prometheus",
-                "plugins/node-status"
+                "plugins/node-status",
+                "plugins/datadog"
               ]
             },
             {

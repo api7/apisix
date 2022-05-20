@@ -31,7 +31,7 @@
     },
     {
       "type": "doc",
-      "id": "how-to-build"
+      "id": "installation-guide"
     },
     {
       "type": "category",
@@ -172,7 +172,8 @@
           "label": "Other Protocols",
           "items": [
             "plugins/dubbo-proxy",
-            "plugins/mqtt-proxy"
+            "plugins/mqtt-proxy",
+            "plugins/kafka-proxy"
           ]
         }
       ]
@@ -214,8 +215,17 @@
         },
         {
           "type": "category",
+          "label": "PubSub",
+          "items": [
+            "pubsub",
+            "pubsub/kafka"
+          ]
+        },
+        {
+          "type": "category",
           "label": "xRPC",
           "items": [
+            "xrpc/redis",
             "xrpc"
           ]
         },

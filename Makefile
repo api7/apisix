@@ -264,6 +264,9 @@ install: runtime
 	$(ENV_INSTALL) -d $(ENV_INST_LUADIR)/apisix
 	$(ENV_INSTALL) apisix/*.lua $(ENV_INST_LUADIR)/apisix/
 
+	$(ENV_INSTALL) -d $(ENV_INST_LUADIR)/apisix/include/apisix/model
+	$(ENV_INSTALL) apisix/include/apisix/model/*.proto $(ENV_INST_LUADIR)/apisix/include/apisix/model/
+
 	$(ENV_INSTALL) -d $(ENV_INST_LUADIR)/apisix/admin
 	$(ENV_INSTALL) apisix/admin/*.lua $(ENV_INST_LUADIR)/apisix/admin/
 
@@ -291,6 +294,9 @@ install: runtime
 	$(ENV_INSTALL) apisix/discovery/nacos/*.lua $(ENV_INST_LUADIR)/apisix/discovery/nacos
 	$(ENV_INSTALL) apisix/discovery/kubernetes/*.lua $(ENV_INST_LUADIR)/apisix/discovery/kubernetes
 	$(ENV_INSTALL) apisix/discovery/tars/*.lua $(ENV_INST_LUADIR)/apisix/discovery/tars
+
+	$(ENV_INSTALL) -d $(ENV_INST_LUADIR)/apisix/pubsub
+	$(ENV_INSTALL) apisix/pubsub/*.lua $(ENV_INST_LUADIR)/apisix/pubsub/
 
 	$(ENV_INSTALL) -d $(ENV_INST_LUADIR)/apisix/http
 	$(ENV_INSTALL) apisix/http/*.lua $(ENV_INST_LUADIR)/apisix/http/

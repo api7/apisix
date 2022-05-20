@@ -285,7 +285,7 @@ etcd:
   #password: 5tHkHhYkjr6cQY       # root password for etcd
   tls:
     # To enable etcd client certificate you need to build APISIX-Base, see
-    # https://apisix.apache.org/docs/apisix/how-to-build/#step-6-build-openresty-for-apache-apisix
+    # https://apisix.apache.org/docs/apisix/FAQ#how-do-i-build-the-apisix-base-environment?
     #cert: /path/to/cert          # path of certificate used by the etcd client
     #key: /path/to/key            # path of key used by the etcd client
 
@@ -374,6 +374,7 @@ plugins:                          # plugin list (sorted by priority)
   - traffic-split                  # priority: 966
   - redirect                       # priority: 900
   - response-rewrite               # priority: 899
+  - kafka-proxy                    # priority: 508
   #- dubbo-proxy                   # priority: 507
   - grpc-transcode                 # priority: 506
   - grpc-web                       # priority: 505
@@ -435,7 +436,7 @@ plugin_attr:
     resource:
       service.name: APISIX
     collector:
-      address: 127.0.0.1:4317
+      address: 127.0.0.1:4318
       request_timeout: 3
       request_headers:
         Authorization: token
@@ -469,3 +470,5 @@ plugin_attr:
       connect: 60s
       read: 60s
       send: 60s
+#  redirect:
+#    https_port: 8443   # the default port for use by HTTP redirects to HTTPS

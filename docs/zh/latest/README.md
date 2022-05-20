@@ -40,7 +40,7 @@ Apache APISIX 的技术架构如下图所示：
 
 - 邮件列表 - 发送任意内容到 dev-subscribe@apisix.apache.org 后，根据回复以订阅邮件列表。
 - QQ 群 - 781365357
-- Slack - 请 [订阅邮件列表](https://apisix.apache.org/docs/general/subscribe-guide) 后发送邮件获取邀请链接
+- Slack - [查看加入方式](https://apisix.apache.org/docs/general/join/#join-the-slack-channel)
 - ![Twitter Follow](https://img.shields.io/twitter/follow/ApacheAPISIX?style=social) - 使用标签 `#ApacheAPISIX` 关注我们并与我们互动。
 - [哔哩哔哩](https://space.bilibili.com/551921247)
 - **新手任务列表**
@@ -167,7 +167,7 @@ A/B 测试、金丝雀发布（灰度发布）、蓝绿部署、限流限速、�
 
 1. 安装
 
-   请参考[安装文档](./how-to-build.md)。
+   请参考[APISIX 安装指南](./installation-guide.md)。
 
 2. 入门指南
 

@@ -28,6 +28,24 @@ services:
     networks:
       apisix_net:
 
+
+  ## keycloak
+  apisix_keycloak:
+    image: mihaibob/keycloak:17.0.0-legacy
+    environment:
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: 123456
+      KEYCLOAK_IMPORT: "/tmp/University-realm.json -Dkeycloak.profile.feature.upload_scripts=enabled"
+    restart: unless-stopped
+    volumes:
+      - ./circleci/pod/keycloak/University-realm.json:/tmp/University-realm.json
+    ports:
+      - "8090:8080"
+      - "8443:8443"
+    networks:
+      apisix_net:
+
+
   ## Consul
   consul_1:
     image: consul:1.7

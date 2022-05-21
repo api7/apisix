@@ -138,7 +138,6 @@ set_coredns() {
 
 skip_test_cases() {
     files=(
-        "t/plugin/authz-keycloak.t" "t/plugin/authz-keycloak2.t" "t/plugin/authz-keycloak3.t"
         "t/plugin/jwt-auth-vault.t"
         "t/plugin/limit-conn.t" "t/plugin/limit-conn2.t" "t/plugin/limit-count-redis-cluster.t"
         "t/plugin/kafka-logger.t" "t/plugin/kafka-logger2.t"

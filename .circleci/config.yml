@@ -96,6 +96,5 @@ workflows:
                 test_dir:
                   - "t/admin t/cli t/config-center-yaml t/control t/core t/debug t/error_page t/misc"
                   - "t/node t/router t/script t/stream-node t/utils t/xds-library t/xrpc"
-          filters:
-            branches:
-              only: circleci/non_dep
+                  - "t/plugin"
+

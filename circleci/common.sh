@@ -139,11 +139,13 @@ set_coredns() {
 skip_test_cases() {
     files=(
         "t/plugin/authz-keycloak.t" "t/plugin/authz-keycloak2.t" "t/plugin/authz-keycloak3.t"
+        "t/plugin/jwt-auth-vault.t"
         "t/plugin/limit-conn.t" "t/plugin/limit-conn2.t" "t/plugin/limit-count-redis-cluster.t"
         "t/plugin/kafka-logger.t" "t/plugin/kafka-logger2.t"
         "t/plugin/ldap-auth.t"
         "t/plugin/opa.t" "t/plugin/opa2.t"
         "t/plugin/openid-connect.t"
+        "t/plugin/openwhisk.t"
         "t/plugin/rocketmq-logger-log-format.t" "t/plugin/rocketmq-logger.t" "t/plugin/rocketmq-logger2.t"
         "t/plugin/skywalking.t"
         "t/plugin/splunk-hec-logging.t"

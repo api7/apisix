@@ -77,3 +77,25 @@ services:
     volumes:
       - ./t/certs:/certs
 
+
+  ## Redis cluster
+  redis-cluster:
+    build:
+      context: ./circleci/pod/redis-cluster
+      dockerfile: Dockerfile
+      args:
+        REDIS_VERSION: 4.0
+    environment:
+      CLUSTER_ANNOUNCE_IP: 127.0.0.1
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+      - "5001:5001"
+      - "5002:5002"
+      - "5003:5003"
+      - "5004:5004"
+      - "5005:5005"
+    command:
+      - /bin/sh
+      - -c
+      - /start.sh

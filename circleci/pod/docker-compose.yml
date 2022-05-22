@@ -29,6 +29,59 @@ services:
       apisix_net:
 
 
+  ## kafka-cluster
+  zookeeper-server1:
+    image: zookeeper:3.6
+    restart: unless-stopped
+    ports:
+      - "2181:2181"
+    networks:
+      kafka_net:
+
+  zookeeper-server2:
+    image: zookeeper:3.6
+    restart: unless-stopped
+    ports:
+      - "12181:12181"
+    networks:
+      kafka_net:
+
+
+  kafka-server1:
+    image: wurstmeister/kafka:2.13-2.8.1
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-server1:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: "test2:1:1,test3:3:1"
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper-server1
+      - zookeeper-server2
+    networks:
+      kafka_net:
+
+  kafka-server2:
+    image: wurstmeister/kafka:2.13-2.8.1
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-server2:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CREATE_TOPICS: "test4:1:1"
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092
+    restart: unless-stopped
+    ports:
+      - "19092:9092"
+    depends_on:
+      - zookeeper-server1
+      - zookeeper-server2
+    networks:
+      kafka_net:
+
+
   ## keycloak
   apisix_keycloak:
     image: mihaibob/keycloak:17.0.0-legacy

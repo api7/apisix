@@ -23,6 +23,8 @@ before_install() {
 
     # launch deps env
     make ci-env-up
+
+    ./circleci/linux-ci-init-service.sh
 }
 
 do_install() {

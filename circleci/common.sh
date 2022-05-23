@@ -139,7 +139,6 @@ set_coredns() {
 skip_test_cases() {
     files=(
         "t/plugin/jwt-auth-vault.t"
-        "t/plugin/limit-conn.t" "t/plugin/limit-conn2.t" "t/plugin/limit-count-redis-cluster.t"
         "t/plugin/ldap-auth.t"
         "t/plugin/opa.t" "t/plugin/opa2.t"
         "t/plugin/openid-connect.t"

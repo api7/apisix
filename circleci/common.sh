@@ -138,14 +138,13 @@ set_coredns() {
 
 skip_test_cases() {
     files=(
-        "t/plugin/jwt-auth-vault.t"
         "t/plugin/ldap-auth.t"
         "t/plugin/opa.t" "t/plugin/opa2.t"
         "t/plugin/openid-connect.t"
         "t/plugin/openwhisk.t"
         "t/plugin/rocketmq-logger-log-format.t" "t/plugin/rocketmq-logger.t" "t/plugin/rocketmq-logger2.t"
-        "t/plugin/skywalking.t"
         "t/plugin/splunk-hec-logging.t"
+        "t/discovery/eureka.t" "t/discovery/nacos.t" "t/discovery/nacos2.t"
     )
 
     for file in ${files[@]}; do

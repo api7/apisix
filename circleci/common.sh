@@ -136,12 +136,31 @@ set_coredns() {
     popd || exit 1
 }
 
+build_nacos_image() {
+    cd ./circleci/pod/nacos/
+    wget https://github.com/nacos-group/nacos-docker/archive/refs/tags/v2.1.0.tar.gz \
+        -O nacos-docker-v2.1.0.tar.gz
+    tar -zxvf nacos-docker-v2.1.0.tar.gz
+    cd nacos-docker-2.1.0/build
+    docker build --build-arg NACOS_VERSION=1.4.1 -t api7/nacos-server:1.4.1 .
+
+    cd ~/project
+}
+
+build_rocketmq_image() {
+    git clone --depth=1 git@github.com:apache/rocketmq-docker.git
+
+    cd rocketmq-docker/image-build
+    docker build --build-arg version=4.6.0 -f Dockerfile-alpine -t api7/rocketmq:4.6.0 .
+
+    cd ~/project
+}
+
 skip_test_cases() {
     files=(
         "t/plugin/ldap-auth.t"
         "t/plugin/opa.t" "t/plugin/opa2.t"
         "t/plugin/openwhisk.t"
-        "t/plugin/rocketmq-logger-log-format.t" "t/plugin/rocketmq-logger.t" "t/plugin/rocketmq-logger2.t"
         "t/plugin/splunk-hec-logging.t"
         "t/discovery/eureka.t"
         "t/tars/discovery/tars.t"

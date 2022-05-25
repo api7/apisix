@@ -21,14 +21,9 @@
 before_install() {
     sudo cpanm --notest Test::Nginx >build.log 2>&1 || (cat build.log && exit 1)
 
-    cd ./circleci/pod/nacos/
-    wget https://github.com/nacos-group/nacos-docker/archive/refs/tags/v2.1.0.tar.gz \
-        -O nacos-docker-v2.1.0.tar.gz
-    tar -zxvf nacos-docker-v2.1.0.tar.gz
-    cd nacos-docker-2.1.0/build
-    docker build --build-arg NACOS_VERSION=1.4.1 -t api7/nacos-server:1.4.1 .
+    build_nacos_image
+    build_rocketmq_image
 
-    cd ~/project
     # launch deps env
     make ci-env-up
 

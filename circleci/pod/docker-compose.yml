@@ -145,9 +145,199 @@ services:
     networks:
       vault_net:
 
+  ## Nacos cluster
+  nacos_auth:
+    hostname: nacos1
+    image: api7/nacos-server:1.4.1
+    env_file:
+      - circleci/pod/nacos/env/common.env
+    environment:
+      NACOS_AUTH_ENABLE: "true"
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+    networks:
+      nacos_net:
+
+  nacos_no_auth:
+    hostname: nacos2
+    image: api7/nacos-server:1.4.1
+    env_file:
+      - circleci/pod/nacos/env/common.env
+    restart: unless-stopped
+    ports:
+      - "8858:8848"
+    networks:
+      nacos_net:
+
+  nacos_server_health_check:
+    build:
+      context: circleci/pod/nacos/healthcheck
+      dockerfile: Dockerfile
+    environment:
+      CHECK_URI: "http://nacos2:8848/nacos/v1/ns/service/list?pageNo=1&pageSize=2"
+    tty: true
+    # debug healthcheck script
+#    volumes:
+#     - ./ci/pod/nacos/healthcheck/nacos-server-healthcheck.sh:/nacos-server-healthcheck.sh
+    healthcheck:
+      test: [ "CMD", "bash", "/nacos-server-healthcheck.sh" ]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+    networks:
+      nacos_net:
+
+  nacos_service_health_check:
+    build:
+      context: circleci/pod/nacos/healthcheck
+      dockerfile: Dockerfile
+    # debug healthcheck script
+#    volumes:
+#     - ./ci/pod/nacos/healthcheck/nacos-service-healthcheck.sh:/nacos-service-healthcheck.sh
+    tty: true
+    healthcheck:
+      test: [ "CMD", "bash", "/nacos-service-healthcheck.sh" ]
+      interval: 5s
+      timeout: 30s
+      retries: 60
+      start_period: 10s
+    networks:
+      nacos_net:
+
+  ### Nacos services
+  nacos-service1:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 1
+    restart: unless-stopped
+    ports:
+      - "18001:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service2:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 2
+    restart: unless-stopped
+    ports:
+      - "18002:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service3:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 1
+      NAMESPACE: test_ns
+    restart: unless-stopped
+    ports:
+      - "18003:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service4:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 1
+      GROUP: test_group
+    restart: unless-stopped
+    ports:
+      - "18004:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service5:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 1
+      GROUP: test_group
+      NAMESPACE: test_ns
+    restart: unless-stopped
+    ports:
+      - "18005:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service6:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 3
+      GROUP: test_group2
+      NAMESPACE: test_ns
+    restart: unless-stopped
+    ports:
+      - "18006:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
+  nacos-service7:
+    build:
+      context: circleci/pod/nacos/service
+      dockerfile: Dockerfile
+    env_file:
+      - circleci/pod/nacos/env/service.env
+    environment:
+      SUFFIX_NUM: 4
+      GROUP: test_group
+      NAMESPACE: test_ns2
+    restart: unless-stopped
+    ports:
+      - "18007:18001"
+    depends_on:
+      nacos_server_health_check:
+        condition: service_healthy
+    networks:
+      nacos_net:
+
 networks:
   apisix_net:
   kafka_net:
   skywalk_net:
   consul_net:
   vault_net:
+  nacos_net:

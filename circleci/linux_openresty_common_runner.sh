@@ -21,6 +21,14 @@
 before_install() {
     sudo cpanm --notest Test::Nginx >build.log 2>&1 || (cat build.log && exit 1)
 
+    cd ./circleci/pod/nacos/
+    wget https://github.com/nacos-group/nacos-docker/archive/refs/tags/v2.1.0.tar.gz \
+        -O nacos-docker-v2.1.0.tar.gz
+    tar -zxvf nacos-docker-v2.1.0.tar.gz
+    cd nacos-docker-2.1.0/build
+    docker build --build-arg NACOS_VERSION=1.4.1 -t api7/nacos-server:1.4.1 .
+
+    cd ~/project
     # launch deps env
     make ci-env-up
 
@@ -30,11 +38,11 @@ before_install() {
 do_install() {
     export_or_prefix
 
-    ./circleci/linux-install-openresty.sh
+    ./utils/linux-install-openresty.sh
 
     ./utils/linux-install-luarocks.sh
 
-    ./circleci/linux-install-etcd-client.sh
+    ./utils/linux-install-etcd-client.sh
 
     create_lua_deps
 

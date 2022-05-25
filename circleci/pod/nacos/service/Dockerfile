@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -17,14 +15,18 @@
 # limitations under the License.
 #
 
-ETCD_ARCH="amd64"
-ARCH=${ARCH:-`(uname -m | tr '[:upper:]' '[:lower:]')`}
+FROM openjdk:latest
 
-if [[ $ARCH == "arm64" ]] || [[ $ARCH == "aarch64" ]]; then
-    ETCD_ARCH="arm64"
-fi
+ENV SUFFIX_NUM=${SUFFIX_NUM:-1}
+ENV NACOS_ADDR=${NACOS_ADDR:-127.0.0.1:8848}
+ENV SERVICE_NAME=${SERVICE_NAME:-gateway-service}
+ENV NAMESPACE=${NAMESPACE}
+ENV GROUP=${GROUP:-DEFAULT_GROUP}
 
-wget https://github.com/etcd-io/etcd/releases/download/v3.4.18/etcd-v3.4.18-linux-${ETCD_ARCH}.tar.gz
-tar xf etcd-v3.4.18-linux-${ETCD_ARCH}.tar.gz
-sudo cp etcd-v3.4.18-linux-${ETCD_ARCH}/etcdctl /usr/local/bin/
-rm -rf etcd-v3.4.18-linux-${ETCD_ARCH}
+ADD https://raw.githubusercontent.com/api7/nacos-test-service/main/spring-nacos-1.0-SNAPSHOT.jar /app.jar
+
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar",\
+            "--suffix.num=${SUFFIX_NUM}","--spring.cloud.nacos.discovery.server-addr=${NACOS_ADDR}",\
+            "--spring.application.name=${SERVICE_NAME}","--spring.cloud.nacos.discovery.group=${GROUP}",\
+            "--spring.cloud.nacos.discovery.namespace=${NAMESPACE}"]
+EXPOSE 18001

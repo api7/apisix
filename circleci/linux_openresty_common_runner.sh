@@ -21,9 +21,6 @@
 before_install() {
     sudo cpanm --notest Test::Nginx >build.log 2>&1 || (cat build.log && exit 1)
 
-    build_nacos_image
-    build_rocketmq_image
-
     # launch deps env
     make ci-env-up
 

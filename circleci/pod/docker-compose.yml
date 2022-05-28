@@ -148,7 +148,7 @@ services:
   ## Nacos cluster
   nacos_auth:
     hostname: nacos1
-    image: api7/nacos-server:1.4.1
+    image: soulbird/nacos-server:1.4.1
     env_file:
       - circleci/pod/nacos/env/common.env
     environment:
@@ -161,7 +161,7 @@ services:
 
   nacos_no_auth:
     hostname: nacos2
-    image: api7/nacos-server:1.4.1
+    image: soulbird/nacos-server:1.4.1
     env_file:
       - circleci/pod/nacos/env/common.env
     restart: unless-stopped
@@ -335,7 +335,7 @@ services:
       nacos_net:
 
   rocketmq_namesrv:
-    image: api7/rocketmq:4.6.0
+    image: soulbird/rocketmq:4.6.0
     container_name: rmqnamesrv
     restart: unless-stopped
     ports:
@@ -345,7 +345,7 @@ services:
       rocketmq_net:
 
   rocketmq_broker:
-    image: api7/rocketmq:4.6.0
+    image: soulbird/rocketmq:4.6.0
     container_name: rmqbroker
     restart: unless-stopped
     ports:

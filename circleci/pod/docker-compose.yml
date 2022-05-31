@@ -349,9 +349,9 @@ services:
     container_name: rmqbroker
     restart: unless-stopped
     ports:
-      - "10909:10909"
-      - "10911:10911"
-      - "10912:10912"
+      - "20909:10909"
+      - "20911:10911"
+      - "20912:10912"
     depends_on:
       - rocketmq_namesrv
     command: sh mqbroker -n rocketmq_namesrv:9876 -c ../conf/broker.conf

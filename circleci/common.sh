@@ -141,6 +141,7 @@ skip_test_cases() {
         "t/plugin/ldap-auth.t"
         "t/plugin/opa.t" "t/plugin/opa2.t"
         "t/plugin/openwhisk.t"
+        "t/plugin/rocketmq-logger-log-format.t" "t/plugin/rocketmq-logger.t" "t/plugin/rocketmq-logger2.t"
         "t/plugin/splunk-hec-logging.t"
         "t/discovery/eureka.t"
         "t/tars/discovery/tars.t"

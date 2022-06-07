@@ -58,7 +58,7 @@ plugin_attr:
 
 并使用 [public-api](../../../en/latest/plugins/public-api.md) 插件来暴露它。
 
-## 如何开启插件
+## 如何启用 HTTP 的指标
 
 `prometheus` 插件可以使用空 {} 开启。
 注意，多个路由/服务可以设置为相同的名称，因此当设置 `prefer_name` 为 `true` 时，注意规范命名否则容易引起误解。
@@ -134,7 +134,7 @@ plugin_attr:
     export_uri: /apisix/metrics
 ```
 
-### Grafana 面板
+## Grafana 面板
 
 插件导出的指标可以在 Grafana 进行图形化绘制显示。
 
@@ -150,7 +150,7 @@ plugin_attr:
 
 ![Grafana chart-4](../../../assets/images/plugin/grafana-4.png)
 
-### 可有的指标
+## 可用的 HTTP 指标
 
 * `Status codes`: upstream 服务返回的 HTTP 状态码，可以统计到每个服务或所有服务的响应状态码的次数总和。具有的维度：
 
@@ -273,4 +273,67 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f1
         }
     }
 }'
+```
+
+## 如何启用 TCP/UDP 指标
+
+:::info IMPORTANT
+
+该功能要求 Apache APISIX 运行在 [APISIX-Base](../FAQ.md#如何构建-APISIX-Base-环境？) 上。
+
+:::
+
+我们也可以通过 `prometheus` 插件采集 TCP/UDP 指标。
+
+首先，确保 `prometheus` 插件已经在你的配置文件（`conf/config.yaml`）中启用：
+
+```yaml title="conf/config.yaml"
+stream_plugins:
+  - ...
+  - prometheus
+```
+
+接着你需要在 stream route 中配置该插件：
+
+```shell
+curl http://127.0.0.1:9080/apisix/admin/stream_routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+{
+    "plugins": {
+        "prometheus":{}
+    },
+    "upstream": {
+        "type": "roundrobin",
+        "nodes": {
+            "127.0.0.1:80": 1
+        }
+    }
+}'
+```
+
+## 可用的 TCP/UDP 指标
+
+以下是把 APISIX 作为 L4 代理时可用的指标：
+
+* `Stream Connections`: 路由级别的已处理连接数。具有的维度：
+
+    | 名称          |    描述             |
+    | -------------| --------------------|
+    | route         | 匹配的 stream route ID|
+* `Connections`: 各种的 Nginx 连接指标，如 active，reading，writing，已建立的连接数。
+* `Info`: 当前 APISIX 节点信息。
+
+这里是 APISIX 指标的范例：
+
+```shell
+$ curl http://127.0.0.1:9091/apisix/prometheus/metrics
+```
+
+```
+...
+# HELP apisix_node_info Info of APISIX node
+# TYPE apisix_node_info gauge
+apisix_node_info{hostname="desktop-2022q8f-wsl"} 1
+# HELP apisix_stream_connection_total Total number of connections handled per stream route in APISIX
+# TYPE apisix_stream_connection_total counter
+apisix_stream_connection_total{route="1"} 1
 ```

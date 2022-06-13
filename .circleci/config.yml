@@ -42,6 +42,17 @@ jobs:
       - run: git submodule update --init
 
       - run:
+          name: Profile CPU and memory every 5s (background)
+          command: |
+            while true; do
+              sleep 5
+              printf "\n\n$(date)\n"
+              top -b -c -n 1
+              echo "======"
+            done
+          background: true
+
+      - run:
           name: Linux launch common services
           command: |
             make ci-env-up project_compose_ci=./circleci/pod/docker-compose.common.yml

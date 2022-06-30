@@ -43,6 +43,7 @@ APISIX can be installed by the different methods listed below:
     {label: 'Docker', value: 'docker'},
     {label: 'Helm', value: 'helm'},
     {label: 'RPM', value: 'rpm'},
+    {label: 'Source Code', value: 'source code'},
   ]}>
 <TabItem value="docker">
 
@@ -167,6 +168,12 @@ Run `apisix help` to get a list of all available operations.
 :::
 
 </TabItem>
+
+<TabItem value="source code">
+
+If you want to build APISIX from source, please refer to [Building APISIX from source](./building-apisix.md).
+
+</TabItem>
 </Tabs>
 
 ## Installing etcd
@@ -185,7 +192,7 @@ It would be installed automatically if you choose the Docker or Helm install met
 <TabItem value="linux">
 
 ```shell
-ETCD_VERSION='3.4.18'
+ETCD_VERSION='3.5.4'
 wget https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-amd64.tar.gz
 tar -xvf etcd-v${ETCD_VERSION}-linux-amd64.tar.gz && \
   cd etcd-v${ETCD_VERSION}-linux-amd64 && \

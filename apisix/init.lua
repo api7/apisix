@@ -27,6 +27,7 @@ require("jit.opt").start("minstitch=2", "maxtrace=4000",
 
 require("apisix.patch").patch()
 local core            = require("apisix.core")
+local conf_server     = require("apisix.conf_server")
 local plugin          = require("apisix.plugin")
 local plugin_config   = require("apisix.plugin_config")
 local script          = require("apisix.script")
@@ -95,6 +96,7 @@ function _M.http_init(args)
     end
 
     xrpc.init()
+    conf_server.init()
 end
 
 
@@ -227,9 +229,9 @@ end
 local function set_upstream_headers(api_ctx, picked_server)
     set_upstream_host(api_ctx, picked_server)
 
-    local hdr = core.request.header(api_ctx, "X-Forwarded-Proto")
-    if hdr then
-        api_ctx.var.var_x_forwarded_proto = hdr
+    local proto = api_ctx.var.http_x_forwarded_proto
+    if proto then
+        api_ctx.var.var_x_forwarded_proto = proto
     end
 end
 
@@ -445,9 +447,10 @@ function _M.http_access_phase()
             if changed then
                 api_ctx.matched_route = route
                 core.table.clear(api_ctx.plugins)
-                api_ctx.plugins = plugin.filter(api_ctx, route, api_ctx.plugins)
+                local phase = "rewrite_in_consumer"
+                api_ctx.plugins = plugin.filter(api_ctx, route, api_ctx.plugins, nil, phase)
                 -- rerun rewrite phase for newly added plugins in consumer
-                plugin.run_plugin("rewrite_in_consumer", api_ctx.plugins, api_ctx)
+                plugin.run_plugin(phase, api_ctx.plugins, api_ctx)
             end
         end
         plugin.run_plugin("access", plugins, api_ctx)
@@ -486,13 +489,33 @@ function _M.http_access_phase()
         end
 
         local route_val = route.value
-        if route_val.upstream and route_val.upstream.enable_websocket then
-            enable_websocket = true
-        end
 
         api_ctx.matched_upstream = (route.dns_value and
                                     route.dns_value.upstream)
                                    or route_val.upstream
+    end
+
+    if api_ctx.matched_upstream and api_ctx.matched_upstream.tls and
+        api_ctx.matched_upstream.tls.client_cert_id then
+
+        local cert_id = api_ctx.matched_upstream.tls.client_cert_id
+        local upstream_ssl = router.router_ssl.get_by_id(cert_id)
+        if not upstream_ssl or upstream_ssl.type ~= "client" then
+            local err  = upstream_ssl and
+                "ssl type should be 'client'" or
+                "ssl id [" .. cert_id .. "] not exits"
+            core.log.error("failed to get ssl cert: ", err)
+
+            if is_http then
+                return core.response.exit(502)
+            end
+
+            return ngx_exit(1)
+        end
+
+        core.log.info("matched ssl: ",
+                  core.json.delay_encode(upstream_ssl, true))
+        api_ctx.upstream_ssl = upstream_ssl
     end
 
     if enable_websocket then

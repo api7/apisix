@@ -48,7 +48,8 @@
             "plugins/real-ip",
             "plugins/server-info",
             "plugins/ext-plugin-post-req",
-            "plugins/ext-plugin-pre-req"
+            "plugins/ext-plugin-pre-req",
+            "plugins/ext-plugin-post-resp"
           ]
         },
         {
@@ -190,6 +191,16 @@
       ]
     },
     {
+      "type": "category",
+      "label": "Development",
+      "items": [
+        {
+          "type": "doc",
+          "id": "building-apisix"
+        }
+      ]
+    },
+    {
       "type": "doc",
       "id": "FAQ"
     },
@@ -205,7 +216,7 @@
             "discovery/dns",
             "discovery/nacos",
             "discovery/eureka",
-            "discovery/zookeeper",
+            "discovery/control-plane-service-discovery",
             "discovery/kubernetes"
           ]
         },

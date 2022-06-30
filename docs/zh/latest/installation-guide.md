@@ -44,6 +44,7 @@ import TabItem from '@theme/TabItem';
     {label: 'Docker', value: 'docker'},
     {label: 'Helm', value: 'helm'},
     {label: 'RPM', value: 'rpm'},
+    {label: 'Source Code', value: 'source code'},
   ]}>
 <TabItem value="docker">
 
@@ -170,6 +171,12 @@ apisix start
 :::
 
 </TabItem>
+
+<TabItem value="source code">
+
+如果你想要使用源码构建 APISIX，请参考[源码安装 APISIX](./building-apisix.md)。
+
+</TabItem>
 </Tabs>
 
 ## 安装 etcd
@@ -188,7 +195,7 @@ APISIX 使用 [etcd](https://github.com/etcd-io/etcd) 作为配置中心进行�
 <TabItem value="linux">
 
 ```shell
-ETCD_VERSION='3.4.18'
+ETCD_VERSION='3.5.4'
 wget https://github.com/etcd-io/etcd/releases/download/v${ETCD_VERSION}/etcd-v${ETCD_VERSION}-linux-amd64.tar.gz
 tar -xvf etcd-v${ETCD_VERSION}-linux-amd64.tar.gz && \
   cd etcd-v${ETCD_VERSION}-linux-amd64 && \

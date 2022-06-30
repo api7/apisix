@@ -66,6 +66,7 @@ lua {
 
 {% if enabled_stream_plugins["prometheus"] and not enable_http then %}
 http {
+    {% if enabled_stream_plugins["prometheus"] then %}
     init_worker_by_lua_block {
         require("apisix.plugins.prometheus.exporter").http_init(true)
     }
@@ -82,14 +83,17 @@ http {
             }
         }
 
-        {% if with_module_status then %}
         location = /apisix/nginx_status {
             allow 127.0.0.0/24;
             deny all;
             stub_status;
         }
-        {% end %}
     }
+    {% end %}
+
+    {% if conf_server then %}
+    {* conf_server *}
+    {% end %}
 }
 {% end %}
 
@@ -503,13 +507,11 @@ http {
             }
         }
 
-        {% if with_module_status then %}
         location = /apisix/nginx_status {
             allow 127.0.0.0/24;
             deny all;
             stub_status;
         }
-        {% end %}
     }
     {% end %}
 
@@ -574,6 +576,10 @@ http {
     }
     {% end %}
 
+    {% if conf_server then %}
+    {* conf_server *}
+    {% end %}
+
     server {
         {% for _, item in ipairs(node_listen) do %}
         listen {* item.ip *}:{* item.port *} default_server {% if item.enable_http2 then %} http2 {% end %} {% if enable_reuseport then %} reuseport {% end %};
@@ -618,14 +624,12 @@ http {
         {% end %}
         # http server configuration snippet ends
 
-        {% if with_module_status then %}
         location = /apisix/nginx_status {
             allow 127.0.0.0/24;
             deny all;
             access_log off;
             stub_status;
         }
-        {% end %}
 
         {% if enable_admin and not admin_server_addr then %}
         location /apisix/admin {

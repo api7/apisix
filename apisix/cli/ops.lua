@@ -21,6 +21,7 @@ local file = require("apisix.cli.file")
 local schema = require("apisix.cli.schema")
 local ngx_tpl = require("apisix.cli.ngx_tpl")
 local cli_ip = require("apisix.cli.ip")
+local snippet = require("apisix.cli.snippet")
 local profile = require("apisix.core.profile")
 local template = require("resty.template")
 local argparse = require("argparse")
@@ -65,6 +66,7 @@ stop:       stop the apisix server
 quit:       stop the apisix server gracefully
 restart:    restart the apisix server
 reload:     reload the apisix server
+test:       test the generated nginx.conf
 version:    print the version of apisix
 ]])
 end
@@ -244,12 +246,9 @@ Please modify "admin_key" in conf/config.yaml .
     end
 
     local or_info = util.execute_cmd("openresty -V 2>&1")
-    local with_module_status = true
     if or_info and not or_info:find("http_stub_status_module", 1, true) then
-        stderr:write("'http_stub_status_module' module is missing in ",
-                     "your openresty, please check it out. Without this ",
-                     "module, there will be fewer monitoring indicators.\n")
-        with_module_status = false
+        util.die("'http_stub_status_module' module is missing in ",
+                 "your openresty, please check it out.\n")
     end
 
     local use_apisix_openresty = true
@@ -541,6 +540,15 @@ Please modify "admin_key" in conf/config.yaml .
         proxy_mirror_timeouts = yaml_conf.plugin_attr["proxy-mirror"].timeout
     end
 
+    local conf_server, err = snippet.generate_conf_server(env, yaml_conf)
+    if err then
+        util.die(err, "\n")
+    end
+
+    if yaml_conf.deployment and yaml_conf.deployment.role then
+        env.deployment_role = yaml_conf.deployment.role
+    end
+
     -- Using template.render
     local sys_conf = {
         use_openresty_1_17 = use_openresty_1_17,
@@ -548,7 +556,6 @@ Please modify "admin_key" in conf/config.yaml .
         lua_cpath = env.pkg_cpath_org,
         os_name = util.trim(util.execute_cmd("uname")),
         apisix_lua_home = env.apisix_home,
-        with_module_status = with_module_status,
         use_apisix_openresty = use_apisix_openresty,
         error_log = {level = "warn"},
         enable_http = enable_http,
@@ -561,6 +568,7 @@ Please modify "admin_key" in conf/config.yaml .
         control_server_addr = control_server_addr,
         prometheus_server_addr = prometheus_server_addr,
         proxy_mirror_timeouts = proxy_mirror_timeouts,
+        conf_server = conf_server,
     }
 
     if not yaml_conf.apisix then
@@ -806,7 +814,10 @@ local function start(env, ...)
     end
 
     init(env)
-    init_etcd(env, args)
+
+    if env.deployment_role ~= "data_plane" then
+        init_etcd(env, args)
+    end
 
     util.execute_cmd(env.openresty_args)
 end

@@ -7,7 +7,8 @@
       "items": [
         "architecture-design/apisix",
         "architecture-design/plugin-config",
-        "architecture-design/debug-mode"
+        "architecture-design/debug-mode",
+        "architecture-design/deployment-role"
       ]
     },
     {
@@ -48,7 +49,8 @@
             "plugins/real-ip",
             "plugins/server-info",
             "plugins/ext-plugin-pre-req",
-            "plugins/ext-plugin-post-req"
+            "plugins/ext-plugin-post-req",
+            "plugins/ext-plugin-post-resp"
           ]
         },
         {
@@ -169,7 +171,7 @@
         },
         {
           "type": "category",
-          "label": "Other Protocols",
+          "label": "Other protocols",
           "items": [
             "plugins/dubbo-proxy",
             "plugins/mqtt-proxy",
@@ -193,6 +195,16 @@
       ]
     },
     {
+      "type": "category",
+      "label": "Development",
+      "items": [
+        {
+          "type": "doc",
+          "id": "building-apisix"
+        }
+      ]
+    },
+    {
       "type": "doc",
       "id": "FAQ"
     },
@@ -209,7 +221,7 @@
             "discovery/consul_kv",
             "discovery/nacos",
             "discovery/eureka",
-            "discovery/zookeeper",
+            "discovery/control-plane-service-discovery",
             "discovery/kubernetes"
           ]
         },

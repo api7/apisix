@@ -24,6 +24,7 @@ local ipairs = ipairs
 
 
 local _M = {
+    need_v3_filter = true,
 }
 
 

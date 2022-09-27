@@ -14,16 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-use t::APISIX;
-
-my $nginx_binary = $ENV{'TEST_NGINX_BINARY'} || 'nginx';
-my $version = eval { `$nginx_binary -V 2>&1` };
-
-if ($version =~ m/\/1.17.8/) {
-    plan(skip_all => "require OpenResty 1.19+");
-} else {
-    plan('no_plan');
-}
+use t::APISIX 'no_plan';
 
 add_block_preprocessor(sub {
     my ($block) = @_;
@@ -36,13 +27,6 @@ add_block_preprocessor(sub {
         $block->set_value("no_error_log", "[error]");
     }
 
-});
-
-Test::Nginx::Socket::set_http_config_filter(sub {
-    my $config = shift;
-    my $snippet = `./t/bin/gen_snippet.lua conf_server`;
-    $config .= $snippet;
-    return $config;
 });
 
 run_tests();
@@ -87,11 +71,13 @@ __DATA__
     }
 --- response_body
 prev_index updated
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
         config_provider: etcd
+    admin:
+        admin_key: ~
     etcd:
         prefix: "/apisix"
         host:
@@ -111,7 +97,7 @@ deployment:
             ngx.say(res.body.node.value)
         }
     }
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -124,8 +110,6 @@ deployment:
             - http://[::1]:2379
 --- error_log
 dns resolve localhost, result:
---- no_error_log
-[error]
 --- response_body
 foo
 
@@ -137,7 +121,7 @@ foo
     local old_f = resolver.parse_domain
     local counter = 0
     resolver.parse_domain = function (domain)
-        if domain == "x.com" then
+        if domain == "localhost" then
             counter = counter + 1
             if counter % 2 == 0 then
                 return "127.0.0.2"
@@ -157,7 +141,7 @@ foo
             ngx.say(res.body.node.value)
         }
     }
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -165,12 +149,14 @@ deployment:
     etcd:
         prefix: "/apisix"
         host:
-            - http://x.com:2379
+            # use localhost so the connection is OK in the situation that the DNS
+            # resolve is not done in APISIX
+            - http://localhost:2379
 --- response_body
 foo
 --- error_log
-x.com is resolved to: 127.0.0.3
-x.com is resolved to: 127.0.0.2
+localhost is resolved to: 127.0.0.3
+localhost is resolved to: 127.0.0.2
 --- no_error_log
 [error]
 
@@ -178,6 +164,11 @@ x.com is resolved to: 127.0.0.2
 
 === TEST 4: update balancer if the DNS result changed
 --- extra_init_by_lua
+    local etcd = require("apisix.core.etcd")
+    etcd.switch_proxy = function ()
+        return etcd.new()
+    end
+
     local resolver = require("apisix.core.resolver")
     local old_f = resolver.parse_domain
     package.loaded.counter = 0
@@ -218,7 +209,7 @@ x.com is resolved to: 127.0.0.2
             end
         }
     }
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -234,8 +225,6 @@ OK
 --- error_log
 x.com is resolved to: 127.0.0.3
 x.com is resolved to: 127.0.0.2
---- no_error_log
-[error]
 
 
 
@@ -249,7 +238,7 @@ x.com is resolved to: 127.0.0.2
             ngx.say(res.body.node.value)
         }
     }
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -294,7 +283,7 @@ server {
     }
 --- response_body
 foo
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -302,11 +291,12 @@ deployment:
     etcd:
         prefix: "/apisix"
         host:
+            - https://127.0.0.1:12379
             - https://localhost:12345
+        tls:
+            verify: false
 --- error_log
 Receive SNI: localhost
---- no_error_log
-[error]
 
 
 
@@ -337,7 +327,7 @@ server {
     }
 --- response_body
 foo
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -345,13 +335,13 @@ deployment:
     etcd:
         prefix: "/apisix"
         host:
+            - https://127.0.0.1:12379
             - https://127.0.0.1:12345
         tls:
+            verify: false
             sni: "x.com"
 --- error_log
 Receive SNI: x.com
---- no_error_log
-[error]
 
 
 
@@ -377,7 +367,7 @@ server {
     }
 --- response_body
 foo
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -415,7 +405,7 @@ server {
     }
 --- response_body
 foo
---- extra_yaml_config
+--- yaml_config
 deployment:
     role: traditional
     role_traditional:
@@ -427,3 +417,33 @@ deployment:
             - http://localhost:12345
 --- error_log
 Receive Host: localhost
+
+
+
+=== TEST 10: default timeout
+--- config
+    location /t {
+        content_by_lua_block {
+            local etcd = require("apisix.core.etcd")
+            local etcd_cli = require("resty.etcd")
+            local f = etcd_cli.new
+            local timeout
+            etcd_cli.new = function(conf)
+                timeout = conf.timeout
+                return f(conf)
+            end
+            etcd.new()
+            ngx.say(timeout)
+        }
+    }
+--- yaml_config
+deployment:
+    role: traditional
+    role_traditional:
+        config_provider: etcd
+    etcd:
+        prefix: "/apisix"
+        host:
+            - http://127.0.0.1:2379
+--- response_body
+30

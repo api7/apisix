@@ -249,3 +249,166 @@ property "block_rules" validation failed
 --- response_body
 hello
 hello world
+
+
+
+=== TEST 5: don't override the plugin in the route
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+
+            local code, err = t('/apisix/admin/plugin_configs/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "plugins": {
+                        "proxy-rewrite": {
+                            "uri": "/hello"
+                        },
+                        "response-rewrite": {
+                            "body": "hello"
+                        }
+                    }
+                }]]
+            )
+            if code > 300 then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+
+            local code, err = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "uri": "/helloaa",
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:1980": 1
+                        },
+                        "type": "roundrobin"
+                    },
+                    "plugin_config_id": 1,
+                    "plugins": {
+                        "response-rewrite": {
+                            "body": "world"
+                        }
+                    }
+                }]]
+            )
+            if code > 300 then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+            ngx.sleep(0.1)
+
+            local code, err, org_body = t('/helloaa')
+            if code > 300 then
+                ngx.log(ngx.ERR, err)
+                return
+            end
+            ngx.say(org_body)
+        }
+    }
+--- response_body
+world
+
+
+
+=== TEST 6: use the latest plugin_consigs after merge the plugins from consumer and route
+--- config
+    location /t {
+        content_by_lua_block {
+            local t = require("lib.test_admin").test
+            local code, body = t('/apisix/admin/consumers',
+                ngx.HTTP_PUT,
+                [[{
+                    "username": "foo",
+                    "plugins": {
+                        "basic-auth": {
+                            "username": "foo",
+                            "password": "bar"
+                        }
+                    }
+                }]]
+            )
+            if code >= 300 then
+                ngx.status = code
+                ngx.say(body)
+                return
+            end
+
+            local code, body = t('/apisix/admin/plugin_configs/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "plugins": {
+                        "ip-restriction": {
+                            "whitelist": ["1.1.1.1"]
+                        },
+                        "basic-auth": {}
+                    }
+                }]]
+            )
+            if code >= 300 then
+                ngx.status = code
+                ngx.say(body)
+                return
+            end
+
+            local code, body = t('/apisix/admin/routes/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "plugin_config_id": "1",
+                    "upstream": {
+                        "nodes": {
+                            "127.0.0.1:1980": 1
+                        },
+                        "type": "roundrobin"
+                    },
+                    "uris": ["/hello"]
+                }]]
+            )
+            if code >= 300 then
+                ngx.status = code
+                ngx.say(body)
+                return
+            end
+            ngx.sleep(0.5)
+
+            local http = require "resty.http"
+            local httpc = http.new()
+            local uri = "http://127.0.0.1:" .. ngx.var.server_port
+                        .. "/hello"
+            local headers = {
+                ["Authorization"] = "Basic Zm9vOmJhcg=="
+            }
+            local res, err = httpc:request_uri(uri, {headers = headers})
+            ngx.print(res.body)
+
+            local code, body = t('/apisix/admin/plugin_configs/1',
+                ngx.HTTP_PUT,
+                [[{
+                    "plugins": {
+                        "ip-restriction": {
+                            "whitelist": ["1.1.1.1", "127.0.0.1"]
+                        },
+                        "basic-auth": {}
+                    }
+                }]]
+            )
+            if code >= 300 then
+                ngx.status = code
+                ngx.say(body)
+                return
+            end
+            ngx.sleep(0.5)
+
+            local res, err = httpc:request_uri(uri, {headers = headers})
+            if not res then
+                ngx.say(err)
+                return
+            end
+            ngx.print(res.body)
+        }
+    }
+--- response_body
+{"message":"Your IP address is not allowed"}
+hello world

@@ -2,10 +2,9 @@
 title: public-api
 keywords:
   - APISIX
-  - Plugin
+  - API Gateway
   - Public API
-  - public-api
-description: This document contains information about the Apache APISIX public-api Plugin.
+description: The public-api is used for exposing an API endpoint through a general HTTP API router.
 ---
 
 <!--
@@ -33,7 +32,11 @@ The `public-api` is used for exposing an API endpoint through a general HTTP API
 
 When you are using custom Plugins, you can use the `public-api` Plugin to define a fixed, public API for a particular functionality. For example, you can create a public API endpoint `/apisix/plugin/jwt/sign` for JWT authentication using the [jwt-auth](./jwt-auth.md) Plugin.
 
+:::note
+
 The public API added in a custom Plugin is not exposed by default and the user should manually configure a Route and enable the `public-api` Plugin on it.
+
+:::
 
 ## Attributes
 
@@ -50,7 +53,7 @@ The example below uses the [jwt-auth](./jwt-auth.md) Plugin and the [key-auth](.
 You can enable the Plugin on a specific Route as shown below:
 
 ```shell
-curl -X PUT 'http://127.0.0.1:9080/apisix/admin/routes/r1' \
+curl -X PUT 'http://127.0.0.1:9180/apisix/admin/routes/r1' \
     -H 'X-API-KEY: <api-key>' \
     -H 'Content-Type: application/json' \
     -d '{
@@ -72,7 +75,7 @@ curl 'http://127.0.0.1:9080/apisix/plugin/jwt/sign?key=user-key'
 You can also use a custom URI for exposing the API as shown below:
 
 ```shell
-curl -X PUT 'http://127.0.0.1:9080/apisix/admin/routes/r2' \
+curl -X PUT 'http://127.0.0.1:9180/apisix/admin/routes/r2' \
     -H 'X-API-KEY: <api-key>' \
     -H 'Content-Type: application/json' \
     -d '{
@@ -96,7 +99,7 @@ curl 'http://127.0.0.1:9080/gen_token?key=user-key'
 You can use the `key-auth` Plugin to add authentication and secure the Route:
 
 ```shell
-curl -X PUT 'http://127.0.0.1:9080/apisix/admin/routes/r2' \
+curl -X PUT 'http://127.0.0.1:9180/apisix/admin/routes/r2' \
     -H 'X-API-KEY: <api-key>' \
     -H 'Content-Type: application/json' \
     -d '{
@@ -113,7 +116,7 @@ curl -X PUT 'http://127.0.0.1:9080/apisix/admin/routes/r2' \
 Now, only authenticated requests are allowed:
 
 ```shell
-curl -i 'http://127.0.0.1:9080/gen_token?key=user-key'
+curl -i 'http://127.0.0.1:9080/gen_token?key=user-key' \
     -H "apikey: test-apikey"
 ```
 
@@ -128,7 +131,7 @@ curl -i 'http://127.0.0.1:9080/gen_token?key=user-key'
 ```
 
 ```shell
-HTTP/1.1 401 UNAUTHORIZED
+HTTP/1.1 401 Unauthorized
 ```
 
 ## Disable Plugin
@@ -136,7 +139,7 @@ HTTP/1.1 401 UNAUTHORIZED
 To disable the `public-api` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
   "uri": "/hello",
   "upstream": {

@@ -47,7 +47,6 @@ local etcd_schema = {
         },
         prefix = {
             type = "string",
-            pattern = [[^/[^/]+$]]
         },
         host = {
             type = "array",
@@ -56,18 +55,22 @@ local etcd_schema = {
                 pattern = [[^https?://]]
             },
             minItems = 1,
+        },
+        timeout = {
+            type = "integer",
+            default = 30,
+            minimum = 1,
+            description = "etcd connection timeout in seconds",
         }
     },
     required = {"prefix", "host"}
 }
+
 local config_schema = {
     type = "object",
     properties = {
         apisix = {
             properties = {
-                config_center = {
-                    enum = {"etcd", "yaml", "xds"},
-                },
                 lua_module_hook = {
                     pattern = "^[a-zA-Z._-]+$",
                 },
@@ -127,12 +130,6 @@ local config_schema = {
                             uniqueItems = true,
                         }
                     }
-                },
-                port_admin = {
-                    type = "integer",
-                },
-                https_admin = {
-                    type = "boolean",
                 },
                 stream_proxy = {
                     type = "object",
@@ -203,7 +200,44 @@ local config_schema = {
                     properties = {
                         ssl_trusted_certificate = {
                             type = "string",
-                        }
+                        },
+                        listen = {
+                            type = "array",
+                            items = {
+                                type = "object",
+                                properties = {
+                                    ip = {
+                                        type = "string",
+                                    },
+                                    port = {
+                                        type = "integer",
+                                        minimum = 1,
+                                        maximum = 65535
+                                    },
+                                    enable_http2 = {
+                                        type = "boolean",
+                                    }
+                                }
+                            }
+                        },
+                        key_encrypt_salt = {
+                            anyOf = {
+                                {
+                                    type = "array",
+                                    minItems = 1,
+                                    items = {
+                                        type = "string",
+                                        minLength = 16,
+                                        maxLength = 16
+                                    }
+                                },
+                                {
+                                    type = "string",
+                                    minLength = 16,
+                                    maxLength = 16
+                                }
+                            }
+                        },
                     }
                 },
             }
@@ -229,6 +263,22 @@ local config_schema = {
             }
         },
         etcd = etcd_schema,
+        plugins = {
+            type = "array",
+            default = {},
+            minItems = 0,
+            items = {
+                type = "string"
+            }
+        },
+        stream_plugins = {
+            type = "array",
+            default = {},
+            minItems = 0,
+            items = {
+                type = "string"
+            }
+        },
         wasm = {
             type = "object",
             properties = {
@@ -261,20 +311,127 @@ local config_schema = {
             type = "object",
             properties = {
                 role = {
-                    enum = {"traditional", "control_plane", "data_plane", "standalone"}
+                    enum = {"traditional", "control_plane", "data_plane", "standalone"},
+                    default = "traditional"
                 }
             },
-            required = {"role"},
+        },
+    },
+    required = {"apisix", "deployment"},
+}
+
+local admin_schema = {
+    type = "object",
+    properties = {
+        admin_key = {
+            type = "array",
+            properties = {
+                items = {
+                    properties = {
+                        name = {type = "string"},
+                        key = {type = "string"},
+                        role = {type = "string"},
+                    }
+                }
+            }
+        },
+        admin_listen = {
+            properties = {
+                listen = { type = "string" },
+                port = { type = "integer" },
+            },
+            default = {
+                listen = "0.0.0.0",
+                port = 9180,
+            }
+        },
+        https_admin = {
+            type = "boolean",
         },
     }
 }
+
 local deployment_schema = {
     traditional = {
         properties = {
             etcd = etcd_schema,
+            admin = admin_schema,
+            role_traditional = {
+                properties = {
+                    config_provider = {
+                        enum = {"etcd"}
+                    },
+                },
+                required = {"config_provider"}
+            }
         },
         required = {"etcd"}
     },
+    control_plane = {
+        properties = {
+            etcd = etcd_schema,
+            role_control_plane = {
+                properties = {
+                    config_provider = {
+                        enum = {"etcd"}
+                    },
+                    conf_server = {
+                        properties = {
+                            listen = {
+                                type = "string",
+                                default = "0.0.0.0:9280",
+                            },
+                            cert = { type = "string" },
+                            cert_key = { type = "string" },
+                            client_ca_cert = { type = "string" },
+                        },
+                        required = {"cert", "cert_key"}
+                    },
+                },
+                required = {"config_provider", "conf_server"}
+            },
+            certs = {
+                properties = {
+                    cert = { type = "string" },
+                    cert_key = { type = "string" },
+                    trusted_ca_cert = { type = "string" },
+                },
+                dependencies = {
+                    cert = {
+                        required = {"cert_key"},
+                    },
+                },
+                default = {},
+            },
+        },
+        required = {"etcd", "role_control_plane"}
+    },
+    data_plane = {
+        properties = {
+            role_data_plane = {
+                properties = {
+                    config_provider = {
+                        enum = {"control_plane", "yaml", "xds"}
+                    },
+                },
+                required = {"config_provider"}
+            },
+            certs = {
+                properties = {
+                    cert = { type = "string" },
+                    cert_key = { type = "string" },
+                    trusted_ca_cert = { type = "string" },
+                },
+                dependencies = {
+                    cert = {
+                        required = {"cert_key"},
+                    },
+                },
+                default = {},
+            },
+        },
+        required = {"role_data_plane"}
+    }
 }
 
 
@@ -298,13 +455,11 @@ function _M.validate(yaml_conf)
         end
     end
 
-    if yaml_conf.deployment then
-        local role = yaml_conf.deployment.role
-        local validator = jsonschema.generate_validator(deployment_schema[role])
-        local ok, err = validator(yaml_conf.deployment)
-        if not ok then
-            return false, "invalid deployment " .. role .. " configuration: " .. err
-        end
+    local role = yaml_conf.deployment.role
+    local validator = jsonschema.generate_validator(deployment_schema[role])
+    local ok, err = validator(yaml_conf.deployment)
+    if not ok then
+        return false, "invalid deployment " .. role .. " configuration: " .. err
     end
 
     return true

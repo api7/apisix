@@ -1,5 +1,10 @@
 ---
 title: Plugin Config
+keywords:
+  - API gateway
+  - Apache APISIX
+  - Plugin Config
+description: Plugin Config in Apache APISIX.
 ---
 
 <!--
@@ -21,15 +26,14 @@ title: Plugin Config
 #
 -->
 
-如果你想要复用一组通用的插件配置，你可以把它们提取成一个 Plugin config，并绑定到对应的路由上。
+Plugin Configs are used to extract commonly used [Plugin](./plugin.md) configurations and can be bound directly to a [Route](./route.md).
 
-举个例子，你可以这么做：
+The example below illustrates how to create a Plugin Config and bind it to a Route:
 
 ```shell
-# 创建 Plugin config
-$ curl http://127.0.0.1:9080/apisix/admin/plugin_configs/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+curl http://127.0.0.1:9180/apisix/admin/plugin_configs/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
-    "desc": "吾乃插件配置 1",
+    "desc": "blah",
     "plugins": {
         "limit-count": {
             "count": 2,
@@ -38,9 +42,10 @@ $ curl http://127.0.0.1:9080/apisix/admin/plugin_configs/1 -H 'X-API-KEY: edd1c9
         }
     }
 }'
+```
 
-# 绑定到路由上
-$ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+```shell
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "uris": ["/index.html"],
     "plugin_config_id": 1,
@@ -53,16 +58,15 @@ $ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f
 }'
 ```
 
-如果找不到对应的 Plugin config，该路由上的请求会报 503 错误。
+When APISIX can't find the Plugin Config with the `id`, the requests reaching this Route are terminated with a status code of 503.
 
-如果这个路由已经配置了 `plugins`，那么 Plugin config 里面的插件配置会合并进去。
-相同的插件会覆盖掉 `plugins` 原有的插件。
+If a Route already has the `plugins` field configured, the plugins in the Plugin Config will effectively be merged to it. The same plugin in the Plugin Config will not override the ones configured directly in the Route.
 
-举个例子：
+For example, if we configure a Plugin Config as shown below
 
 ```
 {
-    "desc": "吾乃插件配置 1",
+    "desc": "I am plugin_config 1",
     "plugins": {
         "ip-restriction": {
             "whitelist": [
@@ -79,7 +83,7 @@ $ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f
 }
 ```
 
-加上
+to a Route as shown below,
 
 ```
 {
@@ -94,7 +98,6 @@ $ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f
     "plugins": {
         "proxy-rewrite": {
             "uri": "/test/add",
-            "scheme": "https",
             "host": "apisix.iresty.com"
         },
         "limit-count": {
@@ -107,7 +110,7 @@ $ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f
 }
 ```
 
-等于
+the effective configuration will be as the one shown below:
 
 ```
 {
@@ -127,11 +130,10 @@ $ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f
         },
         "proxy-rewrite": {
             "uri": "/test/add",
-            "scheme": "https",
             "host": "apisix.iresty.com"
         },
         "limit-count": {
-            "count": 2,
+            "count": 20,
             "time_window": 60,
             "rejected_code": 503
         }

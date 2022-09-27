@@ -19,6 +19,7 @@ local core          = require("apisix.core")
 local config_util   = require("apisix.core.config_util")
 local enable_debug  = require("apisix.debug").enable_debug
 local wasm          = require("apisix.wasm")
+local expr          = require("resty.expr.v1")
 local ngx           = ngx
 local crc32         = ngx.crc32_short
 local ngx_exit      = ngx.exit
@@ -38,6 +39,9 @@ local stream_local_plugins_hash = core.table.new(0, 32)
 
 
 local merged_route = core.lrucache.new({
+    ttl = 300, count = 512
+})
+local expr_lrucache = core.lrucache.new({
     ttl = 300, count = 512
 })
 local local_conf
@@ -72,6 +76,21 @@ local function custom_sort_plugin(l, r)
     return l._meta.priority > r._meta.priority
 end
 
+local function check_disable(plugin_conf)
+    if not plugin_conf then
+        return nil
+    end
+
+    if not plugin_conf._meta then
+       return nil
+    end
+
+    if type(plugin_conf._meta) ~= "table" then
+        return nil
+    end
+
+    return plugin_conf._meta.disable
+end
 
 local PLUGIN_TYPE_HTTP = 1
 local PLUGIN_TYPE_STREAM = 2
@@ -139,14 +158,6 @@ local function load_plugin(name, plugins_list, plugin_type)
     local plugin_injected_schema = core.schema.plugin_injected_schema
 
     if plugin.schema['$comment'] ~= plugin_injected_schema['$comment'] then
-        if properties.disable then
-            core.log.error("invalid plugin [", name,
-                           "]: found forbidden 'disable' field in the schema")
-            return
-        end
-
-        properties.disable = plugin_injected_schema.disable
-
         if properties._meta then
             core.log.error("invalid plugin [", name,
                            "]: found forbidden '_meta' field in the schema")
@@ -157,7 +168,6 @@ local function load_plugin(name, plugins_list, plugin_type)
         -- new injected fields should be added under `_meta`
         -- 1. so we won't break user's code when adding any new injected fields
         -- 2. the semantics is clear, especially in the doc and in the caller side
-        -- TODO: move the `disable` to `_meta` too
 
         plugin.schema['$comment'] = plugin_injected_schema['$comment']
     end
@@ -272,7 +282,7 @@ local function load_stream(plugin_names)
 end
 
 
-function _M.load(config)
+local function get_plugin_names(config)
     local http_plugin_names
     local stream_plugin_names
 
@@ -294,7 +304,7 @@ function _M.load(config)
         local plugins_conf = config.value
         -- plugins_conf can be nil when another instance writes into etcd key "/apisix/plugins/"
         if not plugins_conf then
-            return local_plugins
+            return true
         end
 
         for _, conf in ipairs(plugins_conf) do
@@ -304,6 +314,16 @@ function _M.load(config)
                 core.table.insert(http_plugin_names, conf.name)
             end
         end
+    end
+
+    return false, http_plugin_names, stream_plugin_names
+end
+
+
+function _M.load(config)
+    local ignored, http_plugin_names, stream_plugin_names = get_plugin_names(config)
+    if ignored then
+        return local_plugins
     end
 
     if ngx.config.subsystem == "http" then
@@ -333,6 +353,24 @@ function _M.load(config)
 
     -- for test
     return local_plugins
+end
+
+
+function _M.exit_worker()
+    for name, plugin in pairs(local_plugins_hash) do
+        local ty = PLUGIN_TYPE_HTTP
+        if plugin.type == "wasm" then
+            ty = PLUGIN_TYPE_HTTP_WASM
+        end
+        unload_plugin(name, ty)
+    end
+
+    -- we need to load stream plugin so that we can check their schemas in
+    -- Admin API. Maybe we can avoid calling `load` in this case? So that
+    -- we don't need to call `destroy` too
+    for name in pairs(stream_local_plugins_hash) do
+        unload_plugin(name, PLUGIN_TYPE_STREAM)
+    end
 end
 
 
@@ -371,6 +409,32 @@ local function trace_plugins_info_for_debug(ctx, plugins)
     end
 end
 
+local function meta_filter(ctx, plugin_name, plugin_conf)
+    local filter = plugin_conf._meta and plugin_conf._meta.filter
+    if not filter then
+        return true
+    end
+
+    local ex, ok, err
+    if ctx then
+        ex, err = expr_lrucache(plugin_name .. ctx.conf_type .. ctx.conf_id,
+                                 ctx.conf_version, expr.new, filter)
+    else
+        ex, err = expr.new(filter)
+    end
+    if not ex then
+        core.log.warn("failed to get the 'vars' expression: ", err ,
+                         " plugin_name: ", plugin_name)
+        return true
+    end
+    ok, err = ex:eval()
+    if err then
+        core.log.warn("failed to run the 'vars' expression: ", err,
+                         " plugin_name: ", plugin_name)
+        return true
+    end
+    return ok
+end
 
 function _M.filter(ctx, conf, plugins, route_conf, phase)
     local user_plugin_conf = conf.value.plugins
@@ -389,10 +453,17 @@ function _M.filter(ctx, conf, plugins, route_conf, phase)
         local name = plugin_obj.name
         local plugin_conf = user_plugin_conf[name]
 
-        if type(plugin_conf) == "table" and not plugin_conf.disable then
+        if type(plugin_conf) ~= "table" then
+            goto continue
+        end
+
+        local matched = meta_filter(ctx, name, plugin_conf)
+        local disable = check_disable(plugin_conf)
+        if not disable and matched then
             if plugin_obj.run_policy == "prefer_route" and route_plugin_conf ~= nil then
                 local plugin_conf_in_route = route_plugin_conf[name]
-                if plugin_conf_in_route and not plugin_conf_in_route.disable then
+                local disable_in_route = check_disable(plugin_conf_in_route)
+                if plugin_conf_in_route and not disable_in_route then
                     goto continue
                 end
             end
@@ -402,9 +473,9 @@ function _M.filter(ctx, conf, plugins, route_conf, phase)
             end
             core.table.insert(plugins, plugin_obj)
             core.table.insert(plugins, plugin_conf)
-
-            ::continue::
         end
+
+        ::continue::
     end
 
     trace_plugins_info_for_debug(ctx, plugins)
@@ -470,7 +541,8 @@ function _M.stream_filter(user_route, plugins)
         local name = plugin_obj.name
         local plugin_conf = user_plugin_conf[name]
 
-        if type(plugin_conf) == "table" and not plugin_conf.disable then
+        local disable = check_disable(plugin_conf)
+        if type(plugin_conf) == "table" and not disable then
             core.table.insert(plugins, plugin_obj)
             core.table.insert(plugins, plugin_conf)
         end
@@ -583,7 +655,8 @@ function _M.merge_consumer_route(route_conf, consumer_conf, api_ctx)
     core.log.info("route conf: ", core.json.delay_encode(route_conf))
     core.log.info("consumer conf: ", core.json.delay_encode(consumer_conf))
 
-    local flag = tostring(route_conf) .. tostring(consumer_conf)
+    local flag = route_conf.value.id .. "#" .. route_conf.modifiedIndex
+                 .. "#" .. consumer_conf.id .. "#" .. consumer_conf.modifiedIndex
     local new_conf = merged_route(flag, nil,
                         merge_consumer_route, route_conf, consumer_conf)
 
@@ -620,15 +693,20 @@ end
 
 
 function _M.init_worker()
-    _M.load()
+    local _, http_plugin_names, stream_plugin_names = get_plugin_names()
 
     -- some plugins need to be initialized in init* phases
-    if is_http and local_plugins_hash["prometheus"] then
-        local prometheus_enabled_in_stream = stream_local_plugins_hash["prometheus"]
+    if is_http and core.table.array_find(http_plugin_names, "prometheus") then
+        local prometheus_enabled_in_stream =
+            core.table.array_find(stream_plugin_names, "prometheus")
         require("apisix.plugins.prometheus.exporter").http_init(prometheus_enabled_in_stream)
-    elseif not is_http and stream_local_plugins_hash["prometheus"] then
+    elseif not is_http and core.table.array_find(stream_plugin_names, "prometheus") then
         require("apisix.plugins.prometheus.exporter").stream_init()
     end
+
+    -- someone's plugin needs to be initialized after prometheus
+    -- see https://github.com/apache/apisix/issues/3286
+    _M.load()
 
     if local_conf and not local_conf.apisix.enable_admin then
         init_plugins_syncer()
@@ -711,16 +789,18 @@ local function check_single_plugin_schema(name, plugin_conf, schema_type, skip_d
     end
 
     if plugin_obj.check_schema then
-        local disable = plugin_conf.disable
-        plugin_conf.disable = nil
-
         local ok, err = plugin_obj.check_schema(plugin_conf, schema_type)
         if not ok then
             return false, "failed to check the configuration of plugin "
                 .. name .. " err: " .. err
         end
 
-        plugin_conf.disable = disable
+        if plugin_conf._meta and plugin_conf._meta.filter then
+            ok, err = expr.new(plugin_conf._meta.filter)
+            if not ok then
+                return nil, "failed to validate the 'vars' expression: " .. err
+            end
+        end
     end
 
     return true
@@ -768,16 +848,11 @@ local function stream_check_schema(plugins_conf, schema_type, skip_disabled_plug
         end
 
         if plugin_obj.check_schema then
-            local disable = plugin_conf.disable
-            plugin_conf.disable = nil
-
             local ok, err = plugin_obj.check_schema(plugin_conf, schema_type)
             if not ok then
                 return false, "failed to check the configuration of "
                               .. "stream plugin [" .. name .. "]: " .. err
             end
-
-            plugin_conf.disable = disable
         end
 
         ::CONTINUE::
@@ -824,13 +899,17 @@ function _M.run_plugin(phase, plugins, api_ctx)
         and phase ~= "delayed_body_filter"
     then
         for i = 1, #plugins, 2 do
-            if phase == "rewrite_in_consumer" and plugins[i + 1]._from_consumer
-                    and plugins[i].type ~= "auth"then
-                phase = "rewrite"
+            local phase_func
+            if phase == "rewrite_in_consumer" then
+                if plugins[i].type == "auth" then
+                    plugins[i + 1]._skip_rewrite_in_consumer = true
+                end
+                phase_func = plugins[i]["rewrite"]
+            else
+                phase_func = plugins[i][phase]
             end
-            local phase_func = plugins[i][phase]
 
-            if phase == "rewrite" and plugins[i + 1]._skip_rewrite_in_consumer then
+            if phase == "rewrite_in_consumer" and plugins[i + 1]._skip_rewrite_in_consumer then
                 goto CONTINUE
             end
 

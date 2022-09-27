@@ -18,6 +18,7 @@ local require = require
 local core = require("apisix.core")
 local route = require("apisix.utils.router")
 local plugin = require("apisix.plugin")
+local v3_adapter = require("apisix.admin.v3_adapter")
 local ngx = ngx
 local get_method = ngx.req.get_method
 local ngx_time = ngx.time
@@ -46,9 +47,9 @@ local resources = {
     upstreams       = require("apisix.admin.upstreams"),
     consumers       = require("apisix.admin.consumers"),
     schema          = require("apisix.admin.schema"),
-    ssl             = require("apisix.admin.ssl"),
+    ssls            = require("apisix.admin.ssl"),
     plugins         = require("apisix.admin.plugins"),
-    proto           = require("apisix.admin.proto"),
+    protos          = require("apisix.admin.proto"),
     global_rules    = require("apisix.admin.global_rules"),
     stream_routes   = require("apisix.admin.stream_routes"),
     plugin_metadata = require("apisix.admin.plugin_metadata"),
@@ -62,8 +63,8 @@ local router
 
 local function check_token(ctx)
     local local_conf = core.config.local_conf()
-    if not local_conf or not local_conf.apisix
-       or not local_conf.apisix.admin_key then
+    local admin_key = core.table.try_read_attr(local_conf, "deployment", "admin", "admin_key")
+    if not admin_key then
         return true
     end
 
@@ -74,7 +75,7 @@ local function check_token(ctx)
     end
 
     local admin
-    for i, row in ipairs(local_conf.apisix.admin_key) do
+    for i, row in ipairs(admin_key) do
         if req_token == row.key then
             admin = row
             break
@@ -186,7 +187,17 @@ local function run()
     local code, data = resource[method](seg_id, req_body, seg_sub_path,
                                         uri_args)
     if code then
+        if v3_adapter.enable_v3() then
+            core.response.set_header("X-API-VERSION", "v3")
+        else
+            core.response.set_header("X-API-VERSION", "v2")
+        end
+        if resource.need_v3_filter then
+            data = v3_adapter.filter(data)
+        end
+
         data = strip_etcd_resp(data)
+
         core.response.exit(code, data)
     end
 end

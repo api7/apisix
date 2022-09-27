@@ -27,6 +27,7 @@ local loadstring = loadstring
 
 local _M = {
     version = 0.3,
+    need_v3_filter = true,
 }
 
 

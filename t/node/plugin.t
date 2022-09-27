@@ -14,52 +14,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-use t::APISIX;
-
-my $nginx_binary = $ENV{'TEST_NGINX_BINARY'} || 'nginx';
-my $version = eval { `$nginx_binary -V 2>&1` };
-
-if ($version =~ m/\/1.17.8/) {
-    plan(skip_all => "require OpenResty 1.19+");
-} else {
-    plan('no_plan');
-}
-
-repeat_each(1);
-no_long_string();
-no_root_location();
-no_shuffle();
-log_level("info");
+use t::APISIX 'no_plan';
 
 add_block_preprocessor(sub {
     my ($block) = @_;
-
-    my $cmd = $block->ext_plugin_cmd // "['sleep', '5s']";
-    my $extra_yaml_config = <<_EOC_;
-ext-plugin:
-    cmd: $cmd
-_EOC_
-    $block->set_value("extra_yaml_config", $extra_yaml_config);
 
     if (!$block->request) {
         $block->set_value("request", "GET /t");
     }
 
-    if (!$block->error_log) {
-        $block->set_value("no_error_log", "[error]\n[alert]");
+    if ((!defined $block->error_log) && (!defined $block->no_error_log)) {
+        $block->set_value("no_error_log", "[error]");
     }
+
+    $block;
 });
 
 run_tests;
 
 __DATA__
 
-=== TEST 1: terminate spawn runner
---- ext_plugin_cmd
-["t/plugin/ext-plugin/runner.sh", "3600"]
+=== TEST 1: set custom log format
+--- extra_init_by_lua
+    local exp = require("apisix.plugins.example-plugin")
+    exp.destroy = function()
+        ngx.log(ngx.WARN, "destroy method called")
+    end
 --- config
     location /t {
-        return 200;
+        return 200 "dummy";
     }
---- shutdown_error_log eval
-qr/terminate runner \d+ with SIGTERM/
+--- shutdown_error_log
+destroy method called

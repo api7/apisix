@@ -43,12 +43,13 @@ For Consumer:
 |---------------|---------|-------------------------------------------------------|---------|-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | key           | string  | True                                                  |         |                             | Unique key for a Consumer.                                                                                                                                                                  |
 | secret        | string  | False                                                 |         |                             | The encryption key. If unspecified, auto generated in the background.                                                                                                                       |
-| public_key    | string  | True if `RS256` is set for the `algorithm` attribute. |         |                             | RSA public key.                                                                                                                                                                             |
-| private_key   | string  | True if `RS256` is set for the `algorithm` attribute. |         |                             | RSA private key.                                                                                                                                                                            |
-| algorithm     | string  | False                                                 | "HS256" | ["HS256", "HS512", "RS256"] | Encryption algorithm.                                                                                                                                                                       |
+| public_key    | string  | True if `RS256` or `ES256` is set for the `algorithm` attribute. |         |                             | RSA or ECDSA public key.                                                                                                                                                                             |
+| private_key   | string  | True if `RS256` or `ES256` is set for the `algorithm` attribute. |         |                             | RSA or ECDSA private key.                                                                                                                                                                            |
+| algorithm     | string  | False                                                 | "HS256" | ["HS256", "HS512", "RS256", "ES256"] | Encryption algorithm.                                                                                                                                                                       |
 | exp           | integer | False                                                 | 86400   | [1,...]                     | Expiry time of the token in seconds.                                                                                                                                                        |
 | base64_secret | boolean | False                                                 | false   |                             | Set to true if the secret is base64 encoded.                                                                                                                                                |
-| vault         | object  | False                                                 |         |                             | Set to true to use Vault for storing and retrieving secret (secret for HS256/HS512  or public_key and private_key for RS256). By default, the Vault path is `kv/apisix/consumer/<consumer_name>/jwt-auth`. |
+| vault         | object  | False                                                 |         |                             | Set to true to use Vault for storing and retrieving secret (secret for HS256/HS512  or public_key and private_key for RS256/ES256). By default, the Vault path is `kv/apisix/consumer/<consumer_name>/jwt-auth`. |
+| lifetime_grace_period | integer | False                                         | 0       | [0,...]                     | Define the leeway in seconds to account for clock skew between the server that generated the jwt and the server validating it. Value should be zero (0) or a positive integer. |
 
 :::info IMPORTANT
 
@@ -83,7 +84,7 @@ To enable the Plugin, you have to create a Consumer object with the JWT token an
 First, you can create a Consumer object through the Admin API:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "jack",
     "plugins": {
@@ -100,7 +101,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 The `jwt-auth` Plugin uses the HS256 algorithm by default. To use the RS256 algorithm, you can configure the public key and private key and specify the algorithm:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "kerouac",
     "plugins": {
@@ -119,7 +120,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 Once you have created a Consumer object, you can configure a Route to authenticate requests:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/index.html",
@@ -154,7 +155,7 @@ To use Vault, you can add an empty vault object in your configuration.
 For example, if you have a stored HS256 signing secret inside Vault, you can use it in APISIX by:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "jack",
     "plugins": {
@@ -181,7 +182,7 @@ If the key is not found in this path, the Plugin will log an error.
 And for RS256, both the public and private keys should stored in Vault and it can be configured by:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "jack",
     "plugins": {
@@ -201,7 +202,7 @@ If the key is not found in this path, the Plugin will log an error.
 You can also configure the `public_key` in the Consumer configuration and use the `private_key` stored in Vault:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "rico",
     "plugins": {
@@ -228,7 +229,7 @@ You can also use the [APISIX Dashboard](/docs/dashboard/USER_GUIDE) to complete 
 You need to first setup a Route for an API that signs the token using the [public-api](public-api.md) Plugin:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/jas -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/jas -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/apisix/plugin/jwt/sign",
     "plugins": {
@@ -340,7 +341,7 @@ Accept-Ranges: bytes
 To disable the `jwt-auth` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/index.html",

@@ -53,6 +53,29 @@ plugin_attr:
     export_uri: /apisix/metrics
 ```
 
+### Specifying `metrics`
+
+For http request related metrics, you could specify extra labels, which match the APISIX variables.
+
+If you specify label for nonexist APISIX variable, the label value would be "".
+
+Currently, only below metrics are supported:
+
+* http_status
+* http_latency
+* bandwidth
+
+Here is a configuration example:
+
+```yaml title="conf/config.yaml"
+plugin_attr:
+  prometheus:
+    metrics:
+        http_status:
+            extra_labels:
+                - upstream_addr: $upstream_addr
+                - upstream_status: $upstream_status
+
 ## API
 
 This Plugin will add the API endpoint `/apisix/prometheus/metrics` or your custom export URI for exposing the metrics.
@@ -86,7 +109,7 @@ The `prometheus` Plugin can be enabled with an empty table.
 The example below shows how you can configure the Plugin on a specific Route:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/hello",
     "plugins": {
@@ -201,6 +224,7 @@ The following metrics are exported by the `prometheus` Plugin:
   | node     | IP address of the Upstream node.                                                                                                    |
 
 - Info: Information about the APISIX node.
+- Shared dict: The capacity and free space of all nginx.shared.DICT in APISIX.
 
 Here are the original metrics from APISIX:
 
@@ -272,6 +296,24 @@ apisix_http_latency_bucket{type="upstream",route="1",service="",consumer="",node
 # HELP apisix_node_info Info of APISIX node
 # TYPE apisix_node_info gauge
 apisix_node_info{hostname="desktop-2022q8f-wsl"} 1
+# HELP apisix_shared_dict_capacity_bytes The capacity of each nginx shared DICT since APISIX start
+# TYPE apisix_shared_dict_capacity_bytes gauge
+apisix_shared_dict_capacity_bytes{name="access-tokens"} 1048576
+apisix_shared_dict_capacity_bytes{name="balancer-ewma"} 10485760
+apisix_shared_dict_capacity_bytes{name="balancer-ewma-last-touched-at"} 10485760
+apisix_shared_dict_capacity_bytes{name="balancer-ewma-locks"} 10485760
+apisix_shared_dict_capacity_bytes{name="discovery"} 1048576
+apisix_shared_dict_capacity_bytes{name="etcd-cluster-health-check"} 10485760
+...
+# HELP apisix_shared_dict_free_space_bytes The free space of each nginx shared DICT since APISIX start
+# TYPE apisix_shared_dict_free_space_bytes gauge
+apisix_shared_dict_free_space_bytes{name="access-tokens"} 1032192
+apisix_shared_dict_free_space_bytes{name="balancer-ewma"} 10412032
+apisix_shared_dict_free_space_bytes{name="balancer-ewma-last-touched-at"} 10412032
+apisix_shared_dict_free_space_bytes{name="balancer-ewma-locks"} 10412032
+apisix_shared_dict_free_space_bytes{name="discovery"} 1032192
+apisix_shared_dict_free_space_bytes{name="etcd-cluster-health-check"} 10412032
+...
 ```
 
 ## Disable Plugin
@@ -279,7 +321,7 @@ apisix_node_info{hostname="desktop-2022q8f-wsl"} 1
 To disable the `prometheus` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/hello",
     "plugins": {},
@@ -313,7 +355,7 @@ stream_plugins:
 Then you need to configure the `prometheus` plugin on the stream route:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/stream_routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/stream_routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "plugins": {
         "prometheus":{}

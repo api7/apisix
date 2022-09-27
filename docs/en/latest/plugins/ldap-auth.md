@@ -33,7 +33,7 @@ The `ldap-auth` Plugin can be used to add LDAP authentication to a Route or a Se
 
 This Plugin works with the Consumer object and the consumers of the API can authenticate with an LDAP server using [basic authentication](https://en.wikipedia.org/wiki/Basic_access_authentication).
 
-This Plugin uses [lualdap](https://lualdap.github.io/lualdap/) for connecting with an LDAP server.
+This Plugin uses [lua-resty-ldap](https://github.com/api7/lua-resty-ldap) for connecting with an LDAP server.
 
 ## Attributes
 
@@ -49,7 +49,8 @@ For Route:
 |----------|---------|----------|---------|------------------------------------------------------------------------|
 | base_dn  | string  | True     |         | Base dn of the LDAP server. For example, `ou=users,dc=example,dc=org`. |
 | ldap_uri | string  | True     |         | URI of the LDAP server.                                                |
-| use_tls  | boolean | False    | `true`  | If set to `true` uses TLS.                                             |
+| use_tls  | boolean | False    | `false` | If set to `true` uses TLS.                                             |
+| tls_verify| boolean  | False     | `false`        | Whether to verify the server certificate when `use_tls` is enabled; If set to `true`, you must set `ssl_trusted_certificate` in `config.yaml`, and make sure the host of `ldap_uri` matches the host in server certificate. |
 | uid      | string  | False    | `cn`    | uid attribute.                                                         |
 
 ## Enabling the plugin
@@ -57,7 +58,7 @@ For Route:
 First, you have to create a Consumer and enable the `ldap-auth` Plugin on it:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "foo",
     "plugins": {
@@ -71,7 +72,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 Now you can enable the Plugin on a specific Route or a Service as shown below:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/hello",
@@ -142,7 +143,7 @@ HTTP/1.1 401 Unauthorized
 To disable the `ldap-auth` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:2379/apisix/admin/routes/1 -X PUT -d value='
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/hello",

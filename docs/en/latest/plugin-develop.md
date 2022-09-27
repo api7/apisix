@@ -90,7 +90,7 @@ nginx_config:
 ```
 
 The plugin itself provides the init method. It is convenient for plugins to perform some initialization after
-the plugin is loaded.
+the plugin is loaded. If you need to clean up the initialization, you can put it in the corresponding destroy method.
 
 Note : if the dependency of some plugin needs to be initialized when Nginx start, you may need to add logic to the initialization
 method "http_init" in the file __apisix/init.lua__, and you may need to add some processing on generated part of Nginx
@@ -144,12 +144,6 @@ Note: the order of the plugins is not related to the order of execution.
 To enable your plugin, copy this plugin list into `conf/config.yaml`, and add your plugin name. For instance:
 
 ```yaml
-apisix:
-  admin_key:
-    - name: "admin"
-      key: edd1c9f034335f136f87ad84b625c8f1 # using fixed API token has security risk, please update it when you deploy to production environment
-      role: admin
-
 plugins: # copied from config-default.yaml
   ...
   - your-plugin
@@ -334,7 +328,7 @@ end
 Write the logic of the plugin in the corresponding phase. There are two parameters `conf` and `ctx` in the phase method, take the `limit-conn` plugin configuration as an example.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "methods": ["GET"],
     "uri": "/index.html",
@@ -516,7 +510,7 @@ The above test case represents a simple scenario. Most scenarios will require mu
 
 Additionally, there are some convenience testing endpoints which can be found [here](https://github.com/apache/apisix/blob/master/t/lib/server.lua#L36). For example, see [proxy-rewrite](https://github.com/apache/apisix/blob/master/t/plugin/proxy-rewrite.lua). In test 42, the upstream `uri` is made to redirect `/test?new_uri=hello` to `/hello` (which always returns `hello world`). In test 43, the response body is confirmed to equal `hello world`, meaning the proxy-rewrite configuration added with test 42 worked correctly.
 
-Refer the following [document](how-to-build.md) to setup the testing framework.
+Refer the following [document](building-apisix.md) to setup the testing framework.
 
 ### attach the test-nginx execution process:
 

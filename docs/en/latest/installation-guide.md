@@ -214,6 +214,57 @@ brew services start etcd
 
 ## Next steps
 
+### Configuring APISIX
+
+You can configure your APISIX deployment in two ways:
+
+1. By directly changing your configuration file (`conf/config.yaml`).
+2. By using the `--config` or the `-c` flag to pass the path to your configuration file while starting APISIX.
+
+   ```shell
+   apisix start -c <path to config file>
+   ```
+
+APISIX will use the configurations added in this configuration file and will fall back to the default configuration if anything is not configured.
+
+For example, to configure the default listening port to be `8000` without changing other configurations, your configuration file could look like this:
+
+```yaml title="conf/config.yaml"
+apisix:
+  node_listen: 8000
+```
+
+Now, if you decide you want to change the etcd address to `http://foo:2379`, you can add it to your configuration file. This will not change other configurations.
+
+```yaml title="conf/config.yaml"
+apisix:
+  node_listen: 8000
+
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  etcd:
+    host:
+      - "http://foo:2379"
+```
+
+:::warning
+
+APISIX's default configuration can be found in `conf/config-default.yaml` file and it should not be modified. It is bound to the source code and the configuration should only be changed by the methods mentioned above.
+
+:::
+
+:::warning
+
+The `conf/nginx.conf` file is automatically generated and should not be modified.
+
+:::
+
+### APISIX deployment modes
+
+APISIX has three different deployment modes for different use cases. To learn more and configure deployment modes, see the [documentation](./deployment-modes.md).
+
 ### Updating Admin API key
 
 It is recommended to modify the Admin API key to ensure security.
@@ -221,18 +272,19 @@ It is recommended to modify the Admin API key to ensure security.
 You can update your configuration file as shown below:
 
 ```yaml title="conf/config.yaml"
-apisix:
-  admin_key
-    -
-      name: "admin"
-      key: newsupersecurekey
-      role: admin
+deployment:
+  admin:
+    admin_key
+      -
+        name: "admin"
+        key: newsupersecurekey
+        role: admin
 ```
 
 Now, to access the Admin API, you can use the new key:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes?api_key=newsupersecurekey -i
+curl http://127.0.0.1:9180/apisix/admin/routes?api_key=newsupersecurekey -i
 ```
 
 ### Adding APISIX systemd unit file

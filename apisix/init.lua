@@ -41,7 +41,6 @@ local apisix_ssl      = require("apisix.ssl")
 local upstream_util   = require("apisix.utils.upstream")
 local xrpc            = require("apisix.stream.xrpc")
 local ctxdump         = require("resty.ctxdump")
-local ngx_balancer    = require("ngx.balancer")
 local debug           = require("apisix.debug")
 local pubsub_kafka    = require("apisix.pubsub.kafka")
 local ngx             = ngx
@@ -110,6 +109,10 @@ function _M.http_init_worker()
     -- for testing only
     core.log.info("random test in [1, 10000]: ", math.random(1, 10000))
 
+    -- Because go's scheduler doesn't work after fork, we have to load the gRPC module
+    -- in each worker.
+    core.grpc = require("apisix.core.grpc")
+
     local we = require("resty.worker.events")
     local ok, err = we.configure({shm = "worker-events", interval = 0.1})
     if not ok then
@@ -153,6 +156,9 @@ end
 
 
 function _M.http_exit_worker()
+    -- TODO: we can support stream plugin later - currently there is not `destory` method
+    -- in stream plugins
+    plugin.exit_worker()
     require("apisix.plugins.ext-plugin.init").exit_worker()
 end
 
@@ -219,10 +225,7 @@ local function set_upstream_host(api_ctx, picked_server)
         return
     end
 
-    local nodes_count = up_conf.nodes and #up_conf.nodes or 0
-    if nodes_count == 1 or ngx_balancer.recreate_request then
-        api_ctx.var.upstream_host = picked_server.upstream_host
-    end
+    api_ctx.var.upstream_host = picked_server.upstream_host
 end
 
 
@@ -421,6 +424,10 @@ function _M.http_access_phase()
     api_ctx.route_id = route.value.id
     api_ctx.route_name = route.value.name
 
+    local ref = ctxdump.stash_ngx_ctx()
+    core.log.info("stash ngx ctx: ", ref)
+    ngx_var.ctx_ref = ref
+
     -- run global rule
     plugin.run_global_rules(api_ctx, router.global_rules, nil)
 
@@ -524,10 +531,6 @@ function _M.http_access_phase()
         core.log.info("enabled websocket for route: ", route.value.id)
     end
 
-    if route.value.service_protocol == "grpc" then
-        api_ctx.upstream_scheme = "grpc"
-    end
-
     -- load balancer is not required by kafka upstream, so the upstream
     -- node selection process is intercepted and left to kafka to
     -- handle on its own
@@ -553,10 +556,6 @@ function _M.http_access_phase()
 
     -- run the before_proxy method in access phase first to avoid always reinit request
     common_phase("before_proxy")
-
-    local ref = ctxdump.stash_ngx_ctx()
-    core.log.info("stash ngx ctx: ", ref)
-    ngx_var.ctx_ref = ref
 
     local up_scheme = api_ctx.upstream_scheme
     if up_scheme == "grpcs" or up_scheme == "grpc" then
@@ -767,7 +766,7 @@ end
 
 local function cors_admin()
     local_conf = core.config.local_conf()
-    if local_conf.apisix and not local_conf.apisix.enable_admin_cors then
+    if not core.table.try_read_attr(local_conf, "deployment", "admin", "enable_admin_cors") then
         return
     end
 

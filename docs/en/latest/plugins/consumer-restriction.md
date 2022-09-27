@@ -2,10 +2,9 @@
 title: consumer-restriction
 keywords:
   - APISIX
-  - Plugin
+  - API Gateway
   - Consumer restriction
-  - consumer-restriction
-description: This document contains information about the Apache APISIX consumer-restriction Plugin.
+description: The Consumer Restriction Plugin allows users to set access restrictions based on Consumer, Route, or Service.
 ---
 
 <!--
@@ -33,14 +32,14 @@ The `consumer-restriction` Plugin allows users to set access restrictions based 
 
 ## Attributes
 
-| Name               | Type          | Required | Default       | Valid values                                                                              | Description                                                                    |
-|--------------------|---------------|----------|---------------|-------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-| type               | string        | False    | consumer_name | ["consumer_name", "service_id", "route_id"]                                               | Type of object to base the restriction on.                                     |
-| whitelist          | array[string] | True     |               |                                                                                           | List of objects to whitelist. Has a higher priority than `allowed_by_methods`. |
-| blacklist          | array[string] | True     |               |                                                                                           | List of objects to blacklist. Has a higher priority than `whitelist`.          |
-| rejected_code      | integer       | False    | 403           | [200,...]                                                                                 | HTTP status code returned when the request is rejected.                        |
-| rejected_msg       | string        | False    |               |                                                                                           | Message returned when the request is rejected.                                 |
-| allowed_by_methods | array[object] | False    |               | ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "CONNECT", "TRACE", "PURGE"] | List of allowed HTTP methods for a Consumer.                                   |
+| Name               | Type          | Required | Default       | Valid values  | Description |
+|--------------------|---------------|----------|---------------|---------------|-------------|
+| type               | string        | False    | consumer_name | ["consumer_name", "service_id", "route_id"]  | Type of object to base the restriction on.  |
+| whitelist          | array[string] | True     |               |                                              | List of objects to whitelist. Has a higher priority than `allowed_by_methods`. |
+| blacklist          | array[string] | True     |               |                                              | List of objects to blacklist. Has a higher priority than `whitelist`.          |
+| rejected_code      | integer       | False    | 403           | [200,...]                                    | HTTP status code returned when the request is rejected.                        |
+| rejected_msg       | string        | False    |               |                                              | Message returned when the request is rejected.                                 |
+| allowed_by_methods | array[object] | False    |               | ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "CONNECT", "TRACE", "PURGE"] | List of allowed HTTP methods for a Consumer. |
 
 :::note
 
@@ -61,7 +60,7 @@ The example below shows how you can use the `consumer-restriction` Plugin on a R
 You can first create two consumers `jack1` and `jack2`:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "username": "jack1",
     "plugins": {
@@ -72,7 +71,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
     }
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "username": "jack2",
     "plugins": {
@@ -87,7 +86,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 Next, you can configure the Plugin to the Route:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -115,7 +114,6 @@ curl -u jack2019:123456 http://127.0.0.1:9080/index.html
 
 ```shell
 HTTP/1.1 200 OK
-...
 ```
 
 And requests from `jack2` are blocked:
@@ -135,7 +133,7 @@ HTTP/1.1 403 Forbidden
 The example below configures the Plugin to a Route to restrict `jack1` to only make `POST` requests:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -171,7 +169,7 @@ HTTP/1.1 403 Forbidden
 To also allow `GET` requests, you can update the Plugin configuration and it would be reloaded automatically:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -209,7 +207,7 @@ To restrict a Consumer from accessing a Service, you also need to use an Authent
 First, you can create two services:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "upstream": {
         "nodes": {
@@ -220,7 +218,7 @@ curl http://127.0.0.1:9080/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f
     "desc": "new service 001"
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "upstream": {
         "nodes": {
@@ -235,7 +233,7 @@ curl http://127.0.0.1:9080/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f
 Then configure the `consumer-restriction` Plugin on the Consumer with the `key-auth` Plugin and the `service_id` to whitelist.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "new_consumer",
     "plugins": {
@@ -256,7 +254,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 Finally, you can configure the `key-auth` Plugin and bind the service to the Route:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -287,7 +285,7 @@ HTTP/1.1 200 OK
 Now, if the Route is configured to the Service with `service_id` `2`:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -321,7 +319,7 @@ HTTP/1.1 403 Forbidden
 To disable the `consumer-restriction` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {

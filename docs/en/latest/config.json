@@ -1,14 +1,25 @@
 {
-  "version": "2.14.1",
+  "version": "2.99.0",
   "sidebar": [
     {
+      "type": "doc",
+      "id": "getting-started"
+    },
+    {
+      "type": "doc",
+      "id": "installation-guide"
+    },
+    {
+      "type": "doc",
+      "id": "architecture-design/apisix"
+    },
+    {
       "type": "category",
-      "label": "Architecture Design",
+      "label": "Tutorials",
       "items": [
-        "architecture-design/apisix",
-        "architecture-design/plugin-config",
-        "architecture-design/debug-mode",
-        "architecture-design/deployment-role"
+        "tutorials/expose-api",
+        "tutorials/protect-api",
+        "tutorials/observe-your-api"
       ]
     },
     {
@@ -19,20 +30,13 @@
         "terminology/consumer",
         "terminology/global-rule",
         "terminology/plugin",
+        "terminology/plugin-config",
         "terminology/route",
         "terminology/router",
         "terminology/script",
         "terminology/service",
         "terminology/upstream"
       ]
-    },
-    {
-      "type": "doc",
-      "id": "getting-started"
-    },
-    {
-      "type": "doc",
-      "id": "installation-guide"
     },
     {
       "type": "category",
@@ -76,6 +80,7 @@
             "plugins/authz-casdoor",
             "plugins/wolf-rbac",
             "plugins/openid-connect",
+            "plugins/cas-auth",
             "plugins/hmac-auth",
             "plugins/authz-casbin",
             "plugins/ldap-auth",
@@ -154,7 +159,9 @@
                 "plugins/google-cloud-logging",
                 "plugins/splunk-hec-logging",
                 "plugins/file-logger",
-                "plugins/loggly"
+                "plugins/loggly",
+                "plugins/elasticsearch-logger",
+                "plugins/tencent-cloud-cls"
               ]
             }
           ]
@@ -166,7 +173,9 @@
             "plugins/serverless",
             "plugins/azure-functions",
             "plugins/openwhisk",
-            "plugins/aws-lambda"
+            "plugins/aws-lambda",
+            "plugins/workflow",
+            "plugins/openfunction"
           ]
         },
         {
@@ -201,6 +210,35 @@
         {
           "type": "doc",
           "id": "building-apisix"
+        },
+        {
+          "type": "doc",
+          "id": "external-plugin"
+        },
+        {
+          "type": "doc",
+          "id": "wasm"
+        },
+        {
+          "type": "link",
+          "label": "CODE_STYLE",
+          "href": "https://github.com/apache/apisix/blob/master/CODE_STYLE.md"
+        },
+        {
+          "type": "category",
+          "label": "internal",
+          "items": [
+            "internal/plugin-runner",
+            "internal/testing-framework"
+          ]
+        },
+        {
+          "type": "doc",
+          "id": "plugin-develop"
+        },
+        {
+          "type": "doc",
+          "id": "debug-mode"
         }
       ]
     },
@@ -240,6 +278,10 @@
             "xrpc/redis",
             "xrpc"
           ]
+        },
+        {
+          "type": "doc",
+          "id": "deployment-modes"
         },
         {
           "type": "doc",
@@ -283,24 +325,7 @@
         },
         {
           "type": "doc",
-          "id": "plugin-develop"
-        },
-        {
-          "type": "doc",
           "id": "apisix-variable"
-        },
-        {
-          "type": "doc",
-          "id": "external-plugin"
-        },
-        {
-          "type": "doc",
-          "id": "wasm"
-        },
-        {
-          "type": "link",
-          "label": "CODE_STYLE",
-          "href": "https://github.com/apache/apisix/blob/master/CODE_STYLE.md"
         },
         {
           "type": "doc",
@@ -313,14 +338,6 @@
         {
           "type": "doc",
           "id": "debug-function"
-        },
-        {
-          "type": "category",
-          "label": "internal",
-          "items": [
-            "internal/plugin-runner",
-            "internal/testing-framework"
-          ]
         },
         {
           "type": "doc",

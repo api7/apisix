@@ -22,6 +22,7 @@ local tostring = tostring
 
 local _M = {
     version = 0.1,
+    need_v3_filter = true,
 }
 
 

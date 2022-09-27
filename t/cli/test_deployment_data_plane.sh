@@ -30,12 +30,11 @@ deployment:
         config_provider: control_plane
         control_plane:
             host:
-                - http://127.0.0.1:2379
+                - https://127.0.0.1:12379
+            prefix: "/apisix"
             timeout: 30
-    certs:
-        cert: /path/to/ca-cert
-        cert_key: /path/to/ca-cert
-        trusted_ca_cert: /path/to/ca-cert
+            tls:
+                verify: false
 ' > conf/config.yaml
 
 make run
@@ -50,3 +49,34 @@ if [ ! $res -eq 0 ]; then
 fi
 
 echo "passed: data_plane does not write data to etcd"
+
+code=$(curl -o /dev/null -s -w %{http_code} http://127.0.0.1:9080/apisix/admin/routes -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1')
+make stop
+
+if [ ! $code -eq 404 ]; then
+    echo "failed: data_plane should not enable Admin API"
+    exit 1
+fi
+
+echo "passed: data_plane should not enable Admin API"
+
+echo '
+deployment:
+    role: data_plane
+    role_data_plane:
+        config_provider: control_plane
+        control_plane:
+            host:
+                - https://127.0.0.1:12379
+            prefix: "/apisix"
+            timeout: 30
+' > conf/config.yaml
+
+out=$(make run 2>&1 || true)
+make stop
+if ! echo "$out" | grep 'failed to load the configuration: https://127.0.0.1:12379: certificate verify failed'; then
+    echo "failed: should verify certificate by default"
+    exit 1
+fi
+
+echo "passed: should verify certificate by default"

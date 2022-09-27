@@ -41,6 +41,7 @@ local _M = {
     sort    = table.sort,
     clone   = require("table.clone"),
     isarray = require("table.isarray"),
+    isempty = require("table.isempty"),
 }
 
 
@@ -91,6 +92,10 @@ end
 -- local arr = {"a", "b", "c"}
 -- local idx = core.table.array_find(arr, "b") -- idx = 2
 function _M.array_find(array, val)
+    if type(array) ~= "table" then
+        return nil
+    end
+
     for i, v in ipairs(array) do
         if v == val then
             return i

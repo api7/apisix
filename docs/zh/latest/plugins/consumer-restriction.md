@@ -1,5 +1,10 @@
 ---
 title: consumer-restriction
+keywords:
+  - APISIX
+  - API Gateway
+  - Consumer restriction
+description: Consumer Restriction 插件允许用户根据 Route、Service 或 Consumer 来设置相应的访问限制。
 ---
 
 <!--
@@ -23,32 +28,37 @@ title: consumer-restriction
 
 ## 描述
 
-`consumer-restriction` 根据选择的不同对象做相应的访问限制。
+`consumer-restriction` 插件允许用户根据 Route、Service 或 Consumer 来设置相应的访问限制。
 
 ## 属性
 
-| 参数名     | 类型          | 可选项   | 默认值            | 有效值                           | 描述                                                                                                                            |
-| --------- | ------------- | ------ | -----------------| --------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| type      |     string    | 可选    | consumer_name    | ["consumer_name", "service_id", "route_id"] | 根据不同的对象做相应的限制，支持 `consumer_name`、`service_id`、`route_id`。                                                                     |
-| whitelist | array[string] | 必选    |                  |                                 | 与`blacklist`二选一，只能单独启用白名单或黑名单，两个不能一起使用。                                                                                       |
-| blacklist | array[string] | 必选    |                  |                                 | 与`whitelist`二选一，只能单独启用白名单或黑名单，两个不能一起使用。                                                                                       |
-| rejected_code | integer   | 可选    | 403              | [200,...]                       | 当请求被拒绝时，返回的 HTTP 状态码。                                                                                                         |
-| rejected_msg | String   | 可选    |               |                        | 当请求被拒绝时，返回的消息内容。                                                                                                              |
-| allowed_by_methods | array[object] | 可选     |            |                        | 为用户设置允许的 HTTP methods 列表 , HTTP methods 可以为 `["GET"，"POST"，"PUT"，"DELETE"，"PATCH"，"HEAD"，"OPTIONS"，"CONNECT"，"TRACE", "PURGE"]` |
+| 名称     | 类型          | 必选项   | 默认值            | 有效值                    | 描述                          |
+| --------- | ------------- | ------ | -----------------| -------------------------|------------------------|
+| type      | string    | 否    | consumer_name    | ["consumer_name", "service_id", "route_id"] | 支持设置访问限制的对象类型。 |
+| whitelist | array[string] | 是    |                  |                        | 加入白名单的对象，优先级高于 `allowed_by_methods`。 |
+| blacklist | array[string] | 是    |                  |                        | 加入黑名单的对象，优先级高于 `whitelist`。 |
+| rejected_code | integer   | 否    | 403              | [200,...]          | 当请求被拒绝时，返回的 HTTP 状态码。    |
+| rejected_msg | string   | 否    |               |                   | 当请求被拒绝时，返回的错误信息。     |
+| allowed_by_methods | array[object] | 否     |            | ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "CONNECT", "TRACE", "PURGE"] | 为 Consumer 设置的允许的 HTTP 方法列表。 |
 
-对于 `type` 字段是个枚举类型，它可以是 `consumer_name` 或 `service_id` 。分别代表以下含义：
+:::note
 
-* **consumer_name**：把 `consumer` 的 `username` 列入白名单或黑名单（支持单个或多个 consumer）来限制对服务或路线的访问。
-* **service_id**：把 `service` 的 `id` 列入白名单或黑名单（支持一个或多个 service）来限制 service 的访问，需要结合授权插件一起使用。
+不同的 `type` 属性值分别代表以下含义：
 
-## 示例
+- `consumer_name`：把 Consumer 的 `username` 列入白名单或黑名单来限制 Consumer 对 Route 或 Service 的访问。
+- `service_id`：把 Service 的 `id` 列入白名单或黑名单来限制 Consumer 对 Service 的访问，需要结合授权插件一起使用。
+- `route_id`：把 Route 的 `id` 列入白名单或黑名单来限制 Consumer 对 Route 的访问。
 
-### 如何限制 `consumer_name`
+:::
 
-下面是一个示例，在指定的 route 上开启了 `consumer-restriction` 插件，限制 consumer 访问：
+## 启用并测试插件
+
+### 通过 `consumer_name` 限制访问
+
+首先，创建两个 Consumer，分别为 `jack1` 和 `jack2`：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "username": "jack1",
     "plugins": {
@@ -59,7 +69,7 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
     }
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -i -d '
 {
     "username": "jack2",
     "plugins": {
@@ -69,8 +79,12 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
         }
     }
 }'
+```
 
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+然后，在指定路由上启用并配置 `consumer-restriction` 插件，并通过将 `consumer_name` 加入 `whitelist` 来限制不同 Consumer 的访问：
+
+```shell
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -92,29 +106,36 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 
 **测试插件**
 
-jack1 访问：
+`jack1` 发出访问请求，返回 `200` HTTP 状态码，代表访问成功：
 
 ```shell
 curl -u jack2019:123456 http://127.0.0.1:9080/index.html -i
-HTTP/1.1 200 OK
-...
 ```
 
-jack2 访问：
+```shell
+HTTP/1.1 200 OK
+```
+
+`jack2` 发出访问请求，返回 `403` HTTP 状态码，代表访问被限制，插件生效：
 
 ```shell
 curl -u jack2020:123456 http://127.0.0.1:9080/index.html -i
+```
+
+```shell
 HTTP/1.1 403 Forbidden
 ...
 {"message":"The consumer_name is forbidden."}
 ```
 
-### 如何限制 `allowed_by_methods`
+### 通过 `allowed_by_methods` 限制访问
 
-下面是一个示例，在指定的 route 上开启了 `consumer-restriction` 插件，限制 `jack1` 只能使用 `POST` 进行访问：
+首先，创建两个 Consumer，分别为 `jack1` 和 `jack2`，创建方法请参考[通过 `consumer_name` 限制访问](#通过-consumername-限制访问)。
+
+然后，在指定路由上启用并配置 `consumer-restriction` 插件，并且仅允许 `jack1` 使用 `POST` 方法进行访问：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -137,19 +158,22 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 
 **测试插件**
 
-jack1 访问：
+`jack1` 发出访问请求，返回 `403` HTTP 状态码，代表访问被限制：
 
 ```shell
 curl -u jack2019:123456 http://127.0.0.1:9080/index.html
+```
+
+```shell
 HTTP/1.1 403 Forbidden
 ...
 {"message":"The consumer_name is forbidden."}
 ```
 
-增加 `jack1` `GET` 访问能力：
+现在更新插件配置，增加 `jack1` 的 `GET` 访问能力：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -170,21 +194,24 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 }'
 ```
 
-jack1 访问：
+`jack1` 再次发出访问请求，返回 `200` HTTP 状态码，代表访问成功：
 
 ```shell
 curl -u jack2019:123456 http://127.0.0.1:9080/index.html
+```
+
+```shell
 HTTP/1.1 200 OK
 ```
 
-### 如何限制 `service_id`
+### 通过 `service_id` 限制访问
 
-`service_id` 方式需要与授权插件一起配合使用，这里以 key-auth 授权插件为例。
+使用 `service_id` 的方式需要与授权插件一起配合使用，这里以 [`key-auth`](./key-auth.md) 授权插件为例。
 
-1、创建两个 service
+首先，创建两个 Service：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "upstream": {
         "nodes": {
@@ -195,7 +222,7 @@ curl http://127.0.0.1:9080/apisix/admin/services/1 -H 'X-API-KEY: edd1c9f034335f
     "desc": "new service 001"
 }'
 
-curl http://127.0.0.1:9080/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "upstream": {
         "nodes": {
@@ -207,10 +234,10 @@ curl http://127.0.0.1:9080/apisix/admin/services/2 -H 'X-API-KEY: edd1c9f034335f
 }'
 ```
 
-2、在 `consumer` 上绑定 `consumer-restriction` 插件 (需要与一个授权插件配合才能绑定),并添加 `service_id` 白名单列表
+在指定 Consumer 上配置 `key-auth` 和 `consumer-restriction` 插件，并通过将 `service_id` 加入 `whitelist` 来限制 Consumer 对 Service 的访问：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "username": "new_consumer",
     "plugins": {
@@ -228,10 +255,12 @@ curl http://127.0.0.1:9080/apisix/admin/consumers -H 'X-API-KEY: edd1c9f034335f1
 }'
 ```
 
-3、在 route 上开启 `key-auth` 插件并绑定 `service_id` 为 `1`
+**测试插件**
+
+在指定路由上启用并配置 `key-auth` 插件，并绑定 `service_id` 为 `1`：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -248,20 +277,20 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 }'
 ```
 
-**测试插件**
+对 Service 发出访问请求，返回 `403` HTTP 状态码，说明在白名单列中的 `service_id` 允许访问，插件生效：
 
 ```shell
 curl http://127.0.0.1:9080/index.html -H 'apikey: auth-jack' -i
-HTTP/1.1 200 OK
-...
 ```
 
-说明在白名单列中的 `service_id` 允许访问，插件配置生效。
+```shell
+HTTP/1.1 200 OK
+```
 
-4、在 route 上开启 `key-auth` 插件并绑定 `service_id` 为`2`
+更新配置 `key-auth` 插件，并绑定 `service_id` 为 `2`：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -278,23 +307,24 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
 }'
 ```
 
-**测试插件**
+再次对 Service 发出访问请求，返回 `403` HTTP 状态码，说明不在白名单列表的 `service_id` 被拒绝访问，插件生效：
 
 ```shell
 curl http://127.0.0.1:9080/index.html -H 'apikey: auth-jack' -i
+```
+
+```shell
 HTTP/1.1 403 Forbidden
 ...
 {"message":"The service_id is forbidden."}
 ```
 
-说明不在白名单列表的 `service_id` 被拒绝访问，插件配置生效。
-
 ## 禁用插件
 
-当你想去掉 `consumer-restriction` 插件的时候，很简单，在插件的配置中把对应的 json 配置删除即可，无须重启服务，即刻生效：
+当你需要禁用该插件时，可以通过以下命令删除相应的 JSON 配置，APISIX 将会自动重新加载相关配置，无需重启服务：
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/index.html",
     "upstream": {
@@ -308,5 +338,3 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
     }
 }'
 ```
-
-现在就已移除 `consumer-restriction` 插件，其它插件的开启和移除也类似。

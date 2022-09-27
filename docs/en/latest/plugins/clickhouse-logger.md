@@ -35,7 +35,8 @@ The `clickhouse-logger` Plugin is used to push logs to [ClickHouse](https://clic
 
 | Name          | Type    | Required | Default             | Valid values | Description                                                    |
 |---------------|---------|----------|---------------------|--------------|----------------------------------------------------------------|
-| endpoint_addr | string  | True     |                     |              | ClickHouse endpoint.                                           |
+| endpoint_addr | Deprecated   | True     |                |              | Use `endpoint_addrs` instead. ClickHouse endpoints.            |
+| endpoint_addrs | array  | True     |                     |              | ClickHouse endpoints.                                          |
 | database      | string  | True     |                     |              | Name of the database to store the logs.                        |
 | logtable      | string  | True     |                     |              | Table name to store the logs.                                  |
 | user          | string  | True     |                     |              | ClickHouse username.                                           |
@@ -63,7 +64,7 @@ Configuring the Plugin metadata is global in scope. This means that it will take
 The example below shows how you can configure through the Admin API:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/plugin_metadata/clickhouse-logger -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/plugin_metadata/clickhouse-logger -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "log_format": {
         "host": "$host",
@@ -80,6 +81,7 @@ CREATE TABLE default.test (
   `host` String,
   `client_ip` String,
   `route_id` String,
+  `service_id` String,
   `@timestamp` String,
    PRIMARY KEY(`@timestamp`)
 ) ENGINE = MergeTree()
@@ -95,10 +97,11 @@ Now, if you run `select * from default.test;`, you will get the following row:
 
 ## Enabling the Plugin
 
+If multiple endpoints are configured, they will be written randomly.
 The example below shows how you can enable the Plugin on a specific Route:
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
       "plugins": {
             "clickhouse-logger": {
@@ -106,7 +109,7 @@ curl http://127.0.0.1:9080/apisix/admin/routes/1 -H 'X-API-KEY: edd1c9f034335f13
                 "password": "a",
                 "database": "default",
                 "logtable": "test",
-                "endpoint_addr": "http://127.0.0.1:8123"
+                "endpoint_addrs": ["http://127.0.0.1:8123"]
             }
        },
       "upstream": {
@@ -132,7 +135,7 @@ curl -i http://127.0.0.1:9080/hello
 To disable the `clickhouse-logger` Plugin, you can delete the corresponding JSON configuration from the Plugin configuration. APISIX will automatically reload and you do not have to restart for this to take effect.
 
 ```shell
-curl http://127.0.0.1:9080/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
+curl http://127.0.0.1:9180/apisix/admin/routes/1  -H 'X-API-KEY: edd1c9f034335f136f87ad84b625c8f1' -X PUT -d '
 {
     "uri": "/hello",
     "plugins": {},

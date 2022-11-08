@@ -22,7 +22,7 @@ local plugin = require("apisix.plugin")
 
 local plugin_name = "sls-logger"
 local ngx = ngx
-local rf5424 = require("apisix.plugins.slslog.rfc5424")
+local rf5424 = require("apisix.plugins.sls-logger.rfc5424")
 local tcp = ngx.socket.tcp
 local tostring = tostring
 local ipairs = ipairs

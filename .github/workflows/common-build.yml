@@ -1,0 +1,116 @@
+name: Reusable build workflow
+
+on:
+  workflow_call:
+    inputs:
+      test_dir:
+        required: true
+        type: string
+      compose:
+        required: true
+        type: string
+      os_name:
+        required: true
+        type: string
+
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 90
+    env:
+      SERVER_NAME: ${{ inputs.os_name }}
+      OPENRESTY_VERSION: default
+
+      steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.17"
+
+      - name: Cache deps
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-deps
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.os_name }}-${{ hashFiles('rockspec/apisix-master-0.rockspec') }}
+
+      - name: Cache deps
+        id: cache-images
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-apisix-docker-images
+        with:
+          path: docker-images-buckup
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ matrix.os_name }}-${{ steps.test_env.outputs.type }}
+
+      - name: Linux launch common services
+        run: |
+          make ci-env-up project_compose_ci=ci/pod/docker-compose.common.yml
+
+      - name: Start CI env 
+        run: |
+          # launch deps env
+          if [[ ${{ inputs.compose }} == 'first' ]]; then
+            # launch deps env
+            echo "start first service ..., time: `date`"
+            make ci-env-up project_compose_ci=ci/pod/docker-compose.${{ steps.test_env.outputs.type }}.yml
+            echo "start first service done, time: `date`"
+          fi
+          
+          if [[ ${{ steps.test_env.outputs.type }} == 'plugin' ]]; then
+            echo "start plugin service ..., time: `date`"
+            # download keycloak cas provider
+            sudo wget https://github.com/jacekkow/keycloak-protocol-cas/releases/download/18.0.2/keycloak-protocol-cas-18.0.2.jar -O /opt/keycloak-protocol-cas-18.0.2.jar
+
+            sh ci/pod/openfunction/build-function-image.sh
+            make ci-env-up project_compose_ci=ci/pod/docker-compose.${{ steps.test_env.outputs.type }}.yml
+            sudo ./ci/init-${{ steps.test_env.outputs.type }}-test-service.sh
+            echo "start plugin service done, time: `date`"
+          fi
+
+          if [[ ${{ steps.test_env.outputs.type }} == 'last' ]]; then
+            echo "start last service ..., time: `date`"
+            # generating SSL certificates for Kafka
+            sudo keytool -genkeypair -keyalg RSA -dname "CN=127.0.0.1" -alias 127.0.0.1 -keystore ./ci/pod/kafka/kafka-server/selfsigned.jks -validity 365 -keysize 2048 -storepass changeit
+            make ci-env-up project_compose_ci=ci/pod/docker-compose.${{ steps.test_env.outputs.type }}.yml
+            sudo ./ci/init-${{ steps.test_env.outputs.type }}-test-service.sh
+            echo "start last service done, time: `date`"
+          fi
+
+      - name: Start Dubbo Backend
+        if: matrix.os_name == 'linux_openresty' && steps.test_env.outputs.type == 'plugin'
+        run: |
+          sudo apt install -y maven
+          cd t/lib/dubbo-backend
+          mvn package
+          cd dubbo-backend-provider/target
+          java -Djava.net.preferIPv4Stack=true -jar dubbo-demo-provider.one-jar.jar > /tmp/java.log &
+
+      - name: Build xDS library
+        if: steps.test_env.outputs.type == 'last'
+        run: |
+          cd t/xds-library
+          go build -o libxds.so -buildmode=c-shared main.go export.go
+
+      - name: Build wasm code
+        if: matrix.os_name == 'linux_openresty' && steps.test_env.outputs.type == 'last'
+        run: |
+          export TINYGO_VER=0.20.0
+          wget https://github.com/tinygo-org/tinygo/releases/download/v${TINYGO_VER}/tinygo_${TINYGO_VER}_amd64.deb 2>/dev/null
+          sudo dpkg -i tinygo_${TINYGO_VER}_amd64.deb
+          cd t/wasm && find . -type f -name "*.go" | xargs -Ip tinygo build -o p.wasm -scheduler=none -target=wasi p
+
+      - name: Linux Before install
+        run: sudo ./ci/${{ matrix.os_name }}_runner.sh before_install
+
+      - name: Linux Install
+        run: |
+          sudo --preserve-env=OPENRESTY_VERSION \
+          ./ci/${{ matrix.os_name }}_runner.sh do_install

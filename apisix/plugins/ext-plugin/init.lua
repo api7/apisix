@@ -14,6 +14,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
+
 local is_http = ngx.config.subsystem == "http"
 local flatbuffers = require("flatbuffers")
 local a6_method = require("A6.Method")

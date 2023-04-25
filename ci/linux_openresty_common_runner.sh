@@ -67,7 +67,7 @@ do_install() {
 script() {
     export_or_prefix
     openresty -V
-    exit 2
+    exit 3
 
     ./utils/set-dns.sh
 
